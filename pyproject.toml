@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentsheild"
+dynamic = ["version"]
+description = "Compliance and red-teaming harness for tool-using LLM agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["llm", "agents", "red-team", "audit", "policy", "evaluation"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.15",
+    "pre-commit>=4",
+    "pytest>=8.3",
+    "ruff>=0.16",
+]
+docs = [
+    "mkdocs-material>=9.5",
+]
+
+[project.scripts]
+agentsheild = "agentsheild.cli:main"
+
+[tool.hatch.version]
+path = "src/agentsheild/__init__.py"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = [".venv", "site"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "C4", "PTH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agentsheild"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+mypy_path = "src"
+files = ["src/agentsheild", "tests"]
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-q", "--strict-config"]
+pythonpath = ["src"]
