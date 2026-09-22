@@ -11,15 +11,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from agentsheild.adapters.base import AgentUnderTest
-from agentsheild.config import Settings
-from agentsheild.sandbox.tools import (
+from agentshield.adapters.base import AgentUnderTest
+from agentshield.config import Settings
+from agentshield.sandbox.tools import (
     ScenarioState,
     ToolArgumentError,
     ToolRegistry,
     UnknownToolError,
 )
-from agentsheild.trace import AgentTrace, TraceEvent
+from agentshield.trace import AgentTrace, TraceEvent
 
 StoppedReason = Literal["completed", "max_steps", "time_limit", "agent_error"]
 

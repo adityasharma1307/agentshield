@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: A defect in AgentSheild
+about: A defect in Agentshield
 title: ""
 labels: bug
 ---
@@ -13,6 +13,6 @@ labels: bug
 
 ## Environment
 
-- AgentSheild version (`agentsheild --version`):
+- Agentshield version (`agentshield --version`):
 - Python version:
 - Operating system:

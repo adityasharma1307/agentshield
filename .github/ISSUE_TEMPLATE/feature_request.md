@@ -1,11 +1,11 @@
 ---
 name: Feature request
-about: A capability AgentSheild should grow
+about: A capability Agentshield should grow
 title: ""
 labels: enhancement
 ---
 
-## What should AgentSheild do?
+## What should Agentshield do?
 
 ## Which roadmap phase does this belong to?
 

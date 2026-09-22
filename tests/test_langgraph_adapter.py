@@ -8,17 +8,17 @@ from typing import Any, cast
 
 import pytest
 
-from agentsheild.adapters import AdapterError, LangGraphAgent
-from agentsheild.adapters.base import AgentUnderTest
-from agentsheild.adapters.langgraph import StepGraph
-from agentsheild.trace import ToolSpec
+from agentshield.adapters import AdapterError, LangGraphAgent
+from agentshield.adapters.base import AgentUnderTest
+from agentshield.adapters.langgraph import StepGraph
+from agentshield.trace import ToolSpec
 
 _TOOL = ToolSpec(name="search", description="look up", parameters={"type": "object"})
 
 
 def _graph() -> Any:
     path = Path(__file__).parent / "fixtures" / "langgraph" / "graph.py"
-    spec = importlib.util.spec_from_file_location("agentsheild_fixture_langgraph", path)
+    spec = importlib.util.spec_from_file_location("agentshield_fixture_langgraph", path)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -27,7 +27,7 @@ def _graph() -> Any:
 
 
 def test_optional_sdk_is_not_imported_at_module_level() -> None:
-    source_path = Path(__file__).parents[1] / "src" / "agentsheild" / "adapters" / "langgraph.py"
+    source_path = Path(__file__).parents[1] / "src" / "agentshield" / "adapters" / "langgraph.py"
     tree = ast.parse(source_path.read_text(encoding="utf-8"))
     for node in tree.body:
         if isinstance(node, ast.Import):

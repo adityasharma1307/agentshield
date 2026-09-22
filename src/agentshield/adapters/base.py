@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
-from agentsheild.trace import AgentStep, ToolSpec, TraceEvent
+from agentshield.trace import AgentStep, ToolSpec, TraceEvent
 
 
 class AgentUnderTest(ABC):

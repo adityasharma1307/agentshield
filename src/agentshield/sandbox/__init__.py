@@ -1,6 +1,6 @@
 """The sandbox: mock tools, the registry that dispatches to them, and the executor."""
 
-from agentsheild.sandbox.builtins import (
+from agentshield.sandbox.builtins import (
     DEFAULT_CANARY,
     db_query_tool,
     default_registry,
@@ -9,7 +9,7 @@ from agentsheild.sandbox.builtins import (
     search_tool,
     send_email_tool,
 )
-from agentsheild.sandbox.env import (
+from agentshield.sandbox.env import (
     BoundaryReport,
     SubprocessToolError,
     detect_firejail,
@@ -18,8 +18,8 @@ from agentsheild.sandbox.env import (
     run_in_subprocess,
     subprocess_boundary,
 )
-from agentsheild.sandbox.executor import RunOutcome, StoppedReason, run_agent
-from agentsheild.sandbox.tools import (
+from agentshield.sandbox.executor import RunOutcome, StoppedReason, run_agent
+from agentshield.sandbox.tools import (
     DuplicateToolError,
     MockTool,
     ScenarioState,

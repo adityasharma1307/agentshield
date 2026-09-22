@@ -1,6 +1,6 @@
-# Contributing to AgentSheild
+# Contributing to Agentshield
 
-Thanks for helping build AgentSheild. The product is early: the foundation in this repository is real, and the audit runner described in [docs/roadmap.md](docs/roadmap.md) is still ahead.
+Thanks for helping build Agentshield. The product is early: the foundation in this repository is real, and the audit runner described in [docs/roadmap.md](docs/roadmap.md) is still ahead.
 
 ## Setup
 
@@ -39,11 +39,11 @@ Before opening a pull request, run the same checks CI runs:
 
 ## Versioning
 
-AgentSheild uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Agentshield uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - While the version is `0.y.z`, a minor bump (`0.Y.0`) may include breaking changes. A patch bump (`0.y.Z`) is limited to fixes and documentation.
 - Starting at `1.0.0`, breaking changes bump the major version, compatible features bump the minor version, and fixes bump the patch version.
-- The version string lives in `src/agentsheild/__init__.py` (`__version__`). The package build reads it from there. Do not duplicate it in `pyproject.toml`.
+- The version string lives in `src/agentshield/__init__.py` (`__version__`). The package build reads it from there. Do not duplicate it in `pyproject.toml`.
 
 ## Changelog
 
@@ -59,4 +59,4 @@ Use the pull request template. Describe what changed and how you checked it. One
 
 ## Reporting issues
 
-Use the bug and feature templates. Include the AgentSheild version (`agentsheild --version`), the Python version, and the operating system.
+Use the bug and feature templates. Include the Agentshield version (`agentshield --version`), the Python version, and the operating system.

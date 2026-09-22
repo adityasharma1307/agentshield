@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentsheild"
+name = "agentshield"
 dynamic = ["version"]
 description = "Compliance and red-teaming harness for tool-using LLM agents."
 readme = "README.md"
@@ -48,10 +48,10 @@ docs = [
 ]
 
 [project.scripts]
-agentsheild = "agentsheild.cli:main"
+agentshield = "agentshield.cli:main"
 
 [tool.hatch.version]
-path = "src/agentsheild/__init__.py"
+path = "src/agentshield/__init__.py"
 
 [tool.ruff]
 target-version = "py311"
@@ -63,7 +63,7 @@ extend-exclude = [".venv", "site"]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "C4", "PTH"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentsheild"]
+known-first-party = ["agentshield"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -72,7 +72,7 @@ quote-style = "double"
 strict = true
 python_version = "3.11"
 mypy_path = "src"
-files = ["src/agentsheild", "tests"]
+files = ["src/agentshield", "tests"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]

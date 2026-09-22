@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from agentsheild.sandbox import env as env_module
-from agentsheild.sandbox.env import (
+from agentshield.sandbox import env as env_module
+from agentshield.sandbox.env import (
     SubprocessToolError,
     detect_firejail,
     inprocess_boundary,
@@ -38,7 +38,7 @@ def test_run_in_subprocess_requires_exactly_one_handler_source() -> None:
             handler_attr="echo_handler",
             arguments={},
             scenario_state={},
-            handler_module="agentsheild.sandbox.builtins",
+            handler_module="agentshield.sandbox.builtins",
             handler_file=str(_FIXTURES / "echo.py"),
         )
 

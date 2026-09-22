@@ -12,9 +12,9 @@ fixed acknowledgement. Nothing is actually sent.
 
 from typing import Any
 
-from agentsheild.sandbox.tools import MockTool, ScenarioState, ToolRegistry
+from agentshield.sandbox.tools import MockTool, ScenarioState, ToolRegistry
 
-DEFAULT_CANARY = "CANARY-AGENTSHEILD-0001"
+DEFAULT_CANARY = "CANARY-AGENTSHIELD-0001"
 
 
 def _tool_config(scenario_state: ScenarioState, tool_name: str) -> dict[str, Any]:

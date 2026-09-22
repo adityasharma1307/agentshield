@@ -3,7 +3,7 @@
 Only ever launched as `python _worker.py` by `env.run_in_subprocess`. Reads a
 JSON payload from stdin naming a handler, calls it, and prints a JSON result
 to stdout. Uses only the standard library so the child needs no import of the
-`agentsheild` package to run.
+`agentshield` package to run.
 """
 
 import importlib
@@ -18,7 +18,7 @@ def _load_module(payload: dict[str, Any]) -> ModuleType:
     handler_file = payload.get("handler_file")
     if handler_file:
         spec = importlib.util.spec_from_file_location(
-            "agentsheild_sandbox_worker_target", handler_file
+            "agentshield_sandbox_worker_target", handler_file
         )
         if spec is None or spec.loader is None:
             raise ImportError(f"could not load handler file: {handler_file}")

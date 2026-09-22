@@ -14,25 +14,25 @@ python -m venv .venv
 
     ```powershell
     .\.venv\Scripts\python -m pip install -e ".[dev,docs]"
-    .\.venv\Scripts\agentsheild --version
+    .\.venv\Scripts\agentshield --version
     ```
 
 === "macOS / Linux"
 
     ```bash
     .venv/bin/python -m pip install -e ".[dev,docs]"
-    .venv/bin/agentsheild --version
+    .venv/bin/agentshield --version
     ```
 
-`agentsheild --version` prints `agentsheild 0.0.1`. With no arguments, the command prints help and exits 0.
+`agentshield --version` prints `agentshield 0.0.1`. With no arguments, the command prints help and exits 0.
 
 ## What you can run today
 
 | Command | Result |
 | --- | --- |
-| `agentsheild --version` | Prints the installed version. |
-| `agentsheild --help` | Prints command help. |
-| `agentsheild` | Prints command help and exits 0. |
+| `agentshield --version` | Prints the installed version. |
+| `agentshield --help` | Prints command help. |
+| `agentshield` | Prints command help and exits 0. |
 
 There is no `run`, `verify`, or `report` subcommand yet. The library can take one step from an HTTP service, the OpenAI SDK, or a LangGraph graph. See [Adapters](adapters.md). That call does not execute tools and does not produce an audit.
 

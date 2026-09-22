@@ -6,10 +6,10 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from agentsheild.adapters.base import AgentUnderTest
-from agentsheild.adapters.errors import AdapterError
-from agentsheild.config import Settings
-from agentsheild.trace import AgentStep, ToolSpec, TraceEvent
+from agentshield.adapters.base import AgentUnderTest
+from agentshield.adapters.errors import AdapterError
+from agentshield.config import Settings
+from agentshield.trace import AgentStep, ToolSpec, TraceEvent
 
 _EXCERPT_LIMIT = 200
 _REDACT_MIN_LENGTH = 8

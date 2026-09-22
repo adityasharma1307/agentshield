@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from agentsheild.trace import AgentStep, AgentTrace, ToolCall, ToolSpec, TraceEvent
+from agentshield.trace import AgentStep, AgentTrace, ToolCall, ToolSpec, TraceEvent
 
 
 def test_sequence_must_start_at_zero_and_increase_by_one() -> None:

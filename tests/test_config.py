@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from agentsheild.config import Settings
+from agentshield.config import Settings
 
 
 def test_defaults() -> None:

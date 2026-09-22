@@ -12,7 +12,7 @@ scenario -> executor
         append tool_call and tool_result to history
 ```
 
-The agent object is never given the registry. Only `agentsheild.sandbox.executor.run_agent` calls `dispatch`.
+The agent object is never given the registry. Only `agentshield.sandbox.executor.run_agent` calls `dispatch`.
 
 ## Tools
 
@@ -22,7 +22,7 @@ A handler's only side effect is reading and writing `scenario_state`, a plain `d
 
 ## Starter toolset
 
-`agentsheild.sandbox.builtins.default_registry()` returns a registry with five tools:
+`agentshield.sandbox.builtins.default_registry()` returns a registry with five tools:
 
 | Tool | Arguments | Normal result | Trap |
 | --- | --- | --- | --- |
@@ -46,7 +46,7 @@ Without a `trap_text`, the trap default is used; without `trap` set, the tool re
 
 ## Executor
 
-`agentsheild.sandbox.executor.run_agent(agent, task, registry, ...)` runs the loop above and returns a `RunOutcome`: an `AgentTrace` plus `stopped_reason`, one of `completed`, `max_steps`, `time_limit`, or `agent_error`.
+`agentshield.sandbox.executor.run_agent(agent, task, registry, ...)` runs the loop above and returns a `RunOutcome`: an `AgentTrace` plus `stopped_reason`, one of `completed`, `max_steps`, `time_limit`, or `agent_error`.
 
 - **`max_steps`** (`Settings.max_steps`, default 8) bounds the number of calls to `step()`.
 - **`time_limit_s`** (`Settings.time_limit_s`, default 30) bounds wall-clock time, checked with an injectable `clock` so tests do not sleep.
@@ -56,10 +56,10 @@ On every stop that is not `completed`, the executor appends one more `final` eve
 
 ## Process boundary
 
-`agentsheild.sandbox.env` reports which boundary a run actually got, instead of asserting a guarantee that does not hold:
+`agentshield.sandbox.env` reports which boundary a run actually got, instead of asserting a guarantee that does not hold:
 
 - **`inprocess`** (the default): a handler is a plain Python call inside the executor's process. There is no OS-level enforcement — the guarantee is that `ToolRegistry.dispatch` is the only thing that can reach a handler, and every shipped handler is pure.
-- **`subprocess`**: `agentsheild.sandbox.env.run_in_subprocess` runs one handler call in a child process over stdin/stdout JSON, with a time limit. When `firejail` is on `PATH`, the child also runs under `firejail --noprofile --net=none --private-tmp`, so a handler that opens a socket is denied by the kernel. `--noprofile` keeps the python application profile out of the way. That profile hangs inside WSL and would hide files the worker has to read. Inside WSL, the launcher sets `container=lxc` for that child. Without that, firejail sees WSL as a container it will not nest in and runs the handler with no sandbox. Without firejail, the child is still a separate, time-limited process, but nothing stops it from reaching the network. `subprocess_boundary().network_denied` reports `False` in that case.
+- **`subprocess`**: `agentshield.sandbox.env.run_in_subprocess` runs one handler call in a child process over stdin/stdout JSON, with a time limit. When `firejail` is on `PATH`, the child also runs under `firejail --noprofile --net=none --private-tmp`, so a handler that opens a socket is denied by the kernel. `--noprofile` keeps the python application profile out of the way. That profile hangs inside WSL and would hide files the worker has to read. Inside WSL, the launcher sets `container=lxc` for that child. Without that, firejail sees WSL as a container it will not nest in and runs the handler with no sandbox. Without firejail, the child is still a separate, time-limited process, but nothing stops it from reaching the network. `subprocess_boundary().network_denied` reports `False` in that case.
 
 gVisor's `runsc` binary is detected (`BoundaryReport.gvisor_available`) for visibility, but this version does not wrap a child with it.
 
@@ -74,4 +74,4 @@ A test that binds a loopback port and tries to connect from inside the sandboxed
 
 ## What is not here yet
 
-There is still no scenario file, no policy score, and no `agentsheild run` command — the executor above is a library call, not a CLI. Those are the next phases on the [roadmap](roadmap.md). See the [threat model](threat-model.md) for exactly which guarantees hold in this version.
+There is still no scenario file, no policy score, and no `agentshield run` command — the executor above is a library call, not a CLI. Those are the next phases on the [roadmap](roadmap.md). See the [threat model](threat-model.md) for exactly which guarantees hold in this version.

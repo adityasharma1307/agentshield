@@ -1,10 +1,14 @@
 # Changelog
 
-All notable changes to AgentSheild are recorded here.
+All notable changes to Agentshield are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
+
+### Changed
+
+- The project name is Agentshield. The package and the command are `agentshield`.
 
 ### Fixed
 
@@ -16,8 +20,8 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - HTTP, OpenAI SDK, and LangGraph adapters. OpenAI and LangGraph are optional extras. CI replays fixtures and does not call a live model.
 - `ToolRegistry` and `MockTool`: the only path from a requested tool call to a result. Unknown tools and schema-invalid arguments come back as an `error:`-prefixed result instead of raising past the executor.
 - A starter toolset — `search`, `read_file`, `send_email`, `http_get`, `db_query` — each with a deterministic normal result and a trap result selected by scenario state. The outbound tools record their arguments instead of sending anything.
-- `agentsheild.sandbox.executor.run_agent`, the step loop: dispatches tool calls through the registry only, stops on a final answer, `Settings.max_steps` (default 8), `Settings.time_limit_s` (default 30), or an agent exception, and always closes the trace.
-- `agentsheild.sandbox.env`: reports whether a run's process boundary was `inprocess` or `subprocess`, and whether a subprocess handler's network access was actually denied (only when `firejail` is available). `run_in_subprocess` runs one handler in a child process with a time limit.
+- `agentshield.sandbox.executor.run_agent`, the step loop: dispatches tool calls through the registry only, stops on a final answer, `Settings.max_steps` (default 8), `Settings.time_limit_s` (default 30), or an agent exception, and always closes the trace.
+- `agentshield.sandbox.env`: reports whether a run's process boundary was `inprocess` or `subprocess`, and whether a subprocess handler's network access was actually denied (only when `firejail` is available). `run_in_subprocess` runs one handler in a child process with a time limit.
 - `Settings.max_steps` and `Settings.time_limit_s`.
 - `docs/sandbox.md`, and an updated `docs/threat-model.md` current-status section naming exactly which isolation guarantees hold today.
 
@@ -25,7 +29,7 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Added
 
-- Installable `agentsheild` package with a `--version` command and typed run settings.
+- Installable `agentshield` package with a `--version` command and typed run settings.
 - Ruff, mypy strict, pytest, and a pre-commit config.
 - GitHub Actions workflow that lints, typechecks, tests, builds the docs, and builds a wheel on Python 3.11 and 3.12.
 - Documentation scaffold: quickstart, scenario guide, policy reference, threat model, and the build roadmap.

@@ -1,4 +1,4 @@
-"""Settings shared by an AgentSheild run.
+"""Settings shared by an Agentshield run.
 
 Later phases load these values from a project file. The defaults are the
 paths those phases will look for when no file is present.

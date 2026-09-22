@@ -54,4 +54,4 @@ jobs:
       - name: Install wheel and run the command
         run: |
           python -m pip install --force-reinstall dist/*.whl
-          agentsheild --version
+          agentshield --version

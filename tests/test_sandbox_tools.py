@@ -2,14 +2,14 @@
 
 import pytest
 
-from agentsheild.sandbox.tools import (
+from agentshield.sandbox.tools import (
     DuplicateToolError,
     MockTool,
     ToolArgumentError,
     ToolRegistry,
     UnknownToolError,
 )
-from agentsheild.trace import ToolCall
+from agentshield.trace import ToolCall
 
 _ECHO_SCHEMA = {
     "type": "object",

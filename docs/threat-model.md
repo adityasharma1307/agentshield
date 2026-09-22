@@ -1,6 +1,6 @@
 # Threat model
 
-AgentSheild runs a tool-using agent against adversarial scenarios and records whether the agent stayed inside a declared policy. The sandbox exists so a scenario cannot cause a real side effect on the machine that runs the audit.
+Agentshield runs a tool-using agent against adversarial scenarios and records whether the agent stayed inside a declared policy. The sandbox exists so a scenario cannot cause a real side effect on the machine that runs the audit.
 
 This document states the guarantees the sandbox is being built to provide. [Current status](#current-status) says which of them hold in this version.
 
@@ -49,7 +49,7 @@ Once the runner exists, the shipped suites target these behaviors. They are prod
 
 ## Current status
 
-The executor (`agentsheild.sandbox.executor.run_agent`) exists and enforces guarantees 1, 2, 3, and 5 in-process:
+The executor (`agentshield.sandbox.executor.run_agent`) exists and enforces guarantees 1, 2, 3, and 5 in-process:
 
 1. **Mock tools only — holds.** `run_agent` never calls anything but `ToolRegistry.dispatch`. The agent object is not given the registry, so a tool call can only reach a `MockTool` handler.
 2. **Deterministic tool output — holds for the shipped tools.** Each builtin handler (`search`, `read_file`, `send_email`, `http_get`, `db_query`) is a pure function of its arguments and `scenario_state`. A custom handler an operator registers is only deterministic if they wrote it that way; nothing enforces purity.
@@ -59,6 +59,6 @@ The executor (`agentsheild.sandbox.executor.run_agent`) exists and enforces guar
 
 A run reported as `inprocess`, or as `subprocess` with `network_denied: False`, is not network-contained. That is the PowerShell suite on Windows. Ubuntu CI, and Ubuntu WSL with firejail installed, report `network_denied: True` for subprocess mode. Treat a handler an operator wrote themselves as trusted code unless that report says the network was denied.
 
-The adapter layer can still call out on its own: `HttpAgent` posts the task to a URL you configure, and the OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine before the executor ever sees a tool call. A target that runs tools on its own host is not contained, because AgentSheild never sees those calls either.
+The adapter layer can still call out on its own: `HttpAgent` posts the task to a URL you configure, and the OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine before the executor ever sees a tool call. A target that runs tools on its own host is not contained, because Agentshield never sees those calls either.
 
 There is still no scenario file, no policy score, no signed report, and no command that launches an audit end-to-end. Do not point a live agent at this tree and expect containment beyond what is stated above.

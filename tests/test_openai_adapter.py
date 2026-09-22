@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from agentsheild.adapters import AdapterError, OpenAISdkAgent
-from agentsheild.trace import ToolSpec, TraceEvent
+from agentshield.adapters import AdapterError, OpenAISdkAgent
+from agentshield.trace import ToolSpec, TraceEvent
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "openai"
 _TOOL = ToolSpec(
@@ -19,7 +19,7 @@ _TOOL = ToolSpec(
 
 
 def test_optional_sdk_is_imported_only_for_a_live_client() -> None:
-    source_path = Path(__file__).parents[1] / "src" / "agentsheild" / "adapters" / "openai_sdk.py"
+    source_path = Path(__file__).parents[1] / "src" / "agentshield" / "adapters" / "openai_sdk.py"
     tree = ast.parse(source_path.read_text(encoding="utf-8"))
     for node in tree.body:
         if isinstance(node, ast.Import):

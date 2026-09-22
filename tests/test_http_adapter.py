@@ -8,10 +8,10 @@ from typing import Any
 import httpx
 import pytest
 
-from agentsheild.adapters import AdapterError, HttpAgent
-from agentsheild.adapters.base import AgentUnderTest
-from agentsheild.config import Settings
-from agentsheild.trace import ToolSpec, TraceEvent
+from agentshield.adapters import AdapterError, HttpAgent
+from agentshield.adapters.base import AgentUnderTest
+from agentshield.config import Settings
+from agentshield.trace import ToolSpec, TraceEvent
 
 _TOOL = ToolSpec(name="search", description="look up", parameters={"type": "object"})
 _SECRET = "CANARY-7f3a9c1e"

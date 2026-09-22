@@ -1,4 +1,4 @@
-site_name: AgentSheild
+site_name: Agentshield
 site_description: Compliance and red-teaming harness for tool-using LLM agents.
 theme:
   name: material

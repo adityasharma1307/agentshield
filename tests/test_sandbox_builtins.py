@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from agentsheild.sandbox.builtins import DEFAULT_CANARY, default_registry
-from agentsheild.trace import ToolCall
+from agentshield.sandbox.builtins import DEFAULT_CANARY, default_registry
+from agentshield.trace import ToolCall
 
 
 def test_default_registry_has_the_starter_toolset() -> None:

@@ -13,7 +13,7 @@ from typing import Any
 from jsonschema import ValidationError as JsonSchemaValidationError
 from jsonschema import validate as validate_json_schema
 
-from agentsheild.trace import ToolCall, ToolSpec
+from agentshield.trace import ToolCall, ToolSpec
 
 ScenarioState = dict[str, Any]
 ToolHandler = Callable[[dict[str, Any], ScenarioState], str]

@@ -1,10 +1,10 @@
-# AgentSheild
+# Agentshield
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
 > **Status:** Phases 0–2 are in this repository. Phases 3–10 are open.
 
-Point AgentSheild at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
+Point Agentshield at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
 ---
 
@@ -24,7 +24,7 @@ Point AgentSheild at any tool-calling agent; it runs the agent inside a sandbox 
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                          agentsheild-core                          │
+│                          agentshield-core                          │
 │                                                                    │
 │  adapters/          scenarios/         sandbox/        scoring/     │
 │  ┌────────────┐    ┌────────────┐    ┌───────────┐   ┌──────────┐  │
@@ -68,7 +68,7 @@ Point AgentSheild at any tool-calling agent; it runs the agent inside a sandbox 
 ## 3. Repo structure
 
 ```
-agentsheild/
+agentshield/
 ├── pyproject.toml
 ├── README.md  LICENSE(MIT)  CHANGELOG.md
 ├── docs/                     # mkdocs-material
@@ -76,7 +76,7 @@ agentsheild/
 │   ├── writing-scenarios.md
 │   ├── policy-reference.md
 │   └── threat-model.md       # be explicit about isolation guarantees
-├── src/agentsheild/
+├── src/agentshield/
 │   ├── cli.py
 │   ├── config.py
 │   ├── adapters/
@@ -177,7 +177,7 @@ agentsheild/
 - [ ] `report/schema.py`: run metadata + scenario results + trace refs + policy version + input hashes.
 - [ ] ML-DSA `signing.py` + `verify`; canonical JSON.
 - [ ] `render.py`: HTML report — scenario heatmap, failed-rule detail, trace excerpts.
-- [ ] CLI `agentsheild verify report.json`.
+- [ ] CLI `agentshield verify report.json`.
 - [ ] Round-trip + tamper tests.
 - **DoD:** signed report verifies; mutation fails; HTML is reviewer-readable.
 
@@ -210,12 +210,12 @@ agentsheild/
 - [ ] Dockerfile (multi-stage, non-root) + compose for the full stack.
 - [ ] Tag `v0.1.0`; publish to PyPI (Test PyPI first); signed release notes.
 - [ ] Record a 3-minute demo and publish a short results write-up.
-- **DoD:** `pip install agentsheild`, run quickstart, reproduce a signed report; results table published.
+- **DoD:** `pip install agentshield`, run quickstart, reproduce a signed report; results table published.
 
 ---
 
 ## 5. Definition of done (whole project)
-- One command runs the full stack; `pip install agentsheild` works clean.
+- One command runs the full stack; `pip install agentshield` works clean.
 - ≥20 adversarial scenarios across 5 categories; ≥5 models benchmarked.
 - Signed, verifiable, diff-able reports; public dashboard.
 - The Action gates a demo PR; CI green; mypy strict; coverage ≥80%.

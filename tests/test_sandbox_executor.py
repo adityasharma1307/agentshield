@@ -2,11 +2,11 @@
 
 from collections.abc import Iterator, Mapping, Sequence
 
-from agentsheild.adapters.base import AgentUnderTest
-from agentsheild.config import Settings
-from agentsheild.sandbox.executor import run_agent
-from agentsheild.sandbox.tools import MockTool, ToolRegistry
-from agentsheild.trace import AgentStep, ToolCall, ToolSpec, TraceEvent
+from agentshield.adapters.base import AgentUnderTest
+from agentshield.config import Settings
+from agentshield.sandbox.executor import run_agent
+from agentshield.sandbox.tools import MockTool, ToolRegistry
+from agentshield.trace import AgentStep, ToolCall, ToolSpec, TraceEvent
 
 _ECHO_SCHEMA = {
     "type": "object",

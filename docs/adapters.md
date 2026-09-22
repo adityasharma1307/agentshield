@@ -1,6 +1,6 @@
 # Adapters
 
-An adapter is how AgentSheild talks to an agent under test. Every adapter implements `AgentUnderTest.step`. One call returns the next action. The adapter does not run tools. The sandbox, which lands in the next phase, is what dispatches a tool call and appends the result to the history.
+An adapter is how Agentshield talks to an agent under test. Every adapter implements `AgentUnderTest.step`. One call returns the next action. The adapter does not run tools. The sandbox, which lands in the next phase, is what dispatches a tool call and appends the result to the history.
 
 ```text
 step(task, tools, history, context) -> AgentStep
@@ -12,7 +12,7 @@ step(task, tools, history, context) -> AgentStep
 
 `HttpAgent` POSTs `{task, tools, history, context}` to a URL and reads an `AgentStep` from the JSON body. A non-2xx response, a timeout, or a body that is not a step raises `AdapterError`. If a context value of 8 or more characters appears in an error body, the message replaces it with `[redacted]`.
 
-This is the protocol the sandbox can enforce: the remote service returns the next action, and AgentSheild runs the tools. An agent that runs tools on its own host is outside that boundary. The [threat model](threat-model.md) says so.
+This is the protocol the sandbox can enforce: the remote service returns the next action, and Agentshield runs the tools. An agent that runs tools on its own host is outside that boundary. The [threat model](threat-model.md) says so.
 
 `Settings.http_timeout_s` is the request timeout. The default is 30 seconds.
 
@@ -42,4 +42,4 @@ The core package does not import it. Tests drive the adapter with a plain Python
 
 ## What is not here yet
 
-There is no `agentsheild run` command. Calling `step` yourself does not score a policy, write a report, or contain a tool. Those are the next phases on the [roadmap](roadmap.md).
+There is no `agentshield run` command. Calling `step` yourself does not score a policy, write a report, or contain a tool. Those are the next phases on the [roadmap](roadmap.md).

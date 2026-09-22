@@ -1,8 +1,8 @@
-# AgentSheild
+# Agentshield
 
 Compliance and red-teaming harness for tool-using LLM agents.
 
-AgentSheild runs an agent against adversarial scenarios inside a sandbox, traces every model and tool call, scores the trace against a declarative policy, and writes a signed audit report. A GitHub Action fails a pull request when the agent regresses.
+Agentshield runs an agent against adversarial scenarios inside a sandbox, traces every model and tool call, scores the trace against a declarative policy, and writes a signed audit report. A GitHub Action fails a pull request when the agent regresses.
 
 ## Status
 
@@ -41,7 +41,7 @@ On Windows, activate with `.venv\Scripts\activate`. On macOS and Linux, activate
 
 ```bash
 python -m pip install -e ".[dev,docs]"
-agentsheild --version
+agentshield --version
 ```
 
 The OpenAI and LangGraph clients are optional: `.[openai]` and `.[langgraph]`. The core install does not import them.
