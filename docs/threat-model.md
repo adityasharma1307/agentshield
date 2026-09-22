@@ -49,8 +49,16 @@ Once the runner exists, the shipped suites target these behaviors. They are prod
 
 ## Current status
 
-The executor does not exist, so none of the guarantees in [Intended isolation guarantees](#intended-isolation-guarantees) hold yet.
+The executor (`agentsheild.sandbox.executor.run_agent`) exists and enforces guarantees 1, 2, 3, and 5 in-process:
 
-The adapter layer can call out. `HttpAgent` posts the task to a URL you configure. The OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine. They are not a sandbox. A target that runs tools on its own host is not contained, because AgentSheild never sees the calls.
+1. **Mock tools only — holds.** `run_agent` never calls anything but `ToolRegistry.dispatch`. The agent object is not given the registry, so a tool call can only reach a `MockTool` handler.
+2. **Deterministic tool output — holds for the shipped tools.** Each builtin handler (`search`, `read_file`, `send_email`, `http_get`, `db_query`) is a pure function of its arguments and `scenario_state`. A custom handler an operator registers is only deterministic if they wrote it that way; nothing enforces purity.
+3. **Resource limits — holds for step count and wall-clock time.** `Settings.max_steps` (default 8) and `Settings.time_limit_s` (default 30) stop the loop and close the trace with an empty `final` event. There is no memory limit yet.
+4. **No raw network — holds in `subprocess` mode when `firejail` is on `PATH`.** In the default `inprocess` boundary, a handler that ignored the "pure" contract and imported `socket` directly would succeed; nothing at the OS level stops it. `run_in_subprocess` launches that child under `firejail --noprofile --net=none --private-tmp` when the binary is installed. Inside WSL, firejail would otherwise refuse to nest and the child would keep its network; the launcher sets `container=lxc` so the deny rule applies. CI installs firejail on the Ubuntu runners and runs the network-deny test. A Windows process has no firejail binary, so the same test skips there. gVisor's `runsc` is detected and reported when present; nothing wraps a child with it yet.
+5. **Trace completeness — holds.** Every `tool_call` and `tool_result` the executor produces is appended before the loop can stop, including calls the registry rejected (`UnknownToolError`, `ToolArgumentError`), which become an `error:`-prefixed `tool_result`.
 
-There is still no command that launches an audit. Do not point a live agent at this tree and expect containment.
+A run reported as `inprocess`, or as `subprocess` with `network_denied: False`, is not network-contained. That is the PowerShell suite on Windows. Ubuntu CI, and Ubuntu WSL with firejail installed, report `network_denied: True` for subprocess mode. Treat a handler an operator wrote themselves as trusted code unless that report says the network was denied.
+
+The adapter layer can still call out on its own: `HttpAgent` posts the task to a URL you configure, and the OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine before the executor ever sees a tool call. A target that runs tools on its own host is not contained, because AgentSheild never sees those calls either.
+
+There is still no scenario file, no policy score, no signed report, and no command that launches an audit end-to-end. Do not point a live agent at this tree and expect containment beyond what is stated above.

@@ -2,7 +2,7 @@
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
-> **Status:** Phases 0 and 1 are in this repository. Phases 2–10 are open.
+> **Status:** Phases 0–2 are in this repository. Phases 3–10 are open.
 
 Point AgentSheild at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
@@ -138,11 +138,11 @@ agentsheild/
 - **DoD:** three agent kinds run through one interface; no live LLM in CI.
 
 ### Phase 2 — Sandbox & mock tools
-- [ ] `MockTool` base (name, schema, deterministic handler) + `ToolRegistry`.
-- [ ] Ship a starter toolset: `search`, `read_file`, `send_email`, `http_get`, `db_query` — each with a "trap" variant (e.g. a doc that contains an injection payload).
-- [ ] `executor.py`: run the agent with resource/time limits; enforce that tool calls only hit mocks.
-- [ ] Isolation via firejail/subprocess; document exactly what is and isn't contained in `threat-model.md`.
-- [ ] Tests: assert no network escape; assert deterministic tool outputs.
+- [x] `MockTool` base (name, schema, deterministic handler) + `ToolRegistry`.
+- [x] Ship a starter toolset: `search`, `read_file`, `send_email`, `http_get`, `db_query` — each with a "trap" variant (e.g. a doc that contains an injection payload).
+- [x] `executor.py`: run the agent with resource/time limits; enforce that tool calls only hit mocks.
+- [x] Isolation via firejail/subprocess; document exactly what is and isn't contained in `threat-model.md`.
+- [x] Tests: assert no network escape (skips honestly where the platform can't enforce it); assert deterministic tool outputs.
 - **DoD:** an agent's tool calls are fully intercepted and reproducible; documented threat model.
 
 ### Phase 3 — Scenario DSL & suites

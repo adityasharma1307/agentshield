@@ -18,3 +18,5 @@ class Settings(BaseModel):
     policy_path: Path = Path("policy.yaml")
     report_dir: Path = Path("reports")
     http_timeout_s: float = Field(default=30, gt=0)
+    max_steps: int = Field(default=8, gt=0)
+    time_limit_s: float = Field(default=30, gt=0)
