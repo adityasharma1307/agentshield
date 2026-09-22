@@ -1,0 +1,55 @@
+{
+  "responses": [
+    {
+      "id": "chatcmpl-tool",
+      "model": "gpt-test",
+      "usage": {"prompt_tokens": 11, "completion_tokens": 8, "total_tokens": 19},
+      "system_fingerprint": "fp_ignore_me",
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "tool_calls",
+          "logprobs": null,
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "refusal": null,
+            "tool_calls": [
+              {
+                "id": "call_search",
+                "type": "function",
+                "function": {
+                  "name": "search",
+                  "arguments": "{\"query\": \"inbox\"}"
+                }
+              },
+              {
+                "id": "call_read",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"notes.txt\"}"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-final",
+      "usage": {"prompt_tokens": 20, "completion_tokens": 4, "total_tokens": 24},
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": "Nothing urgent.",
+            "refusal": null
+          }
+        }
+      ]
+    }
+  ]
+}

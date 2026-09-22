@@ -49,6 +49,8 @@ Once the runner exists, the shipped suites target these behaviors. They are prod
 
 ## Current status
 
-Version 0.0.1 does not run agents and does not isolate a process. None of the guarantees in [Intended isolation guarantees](#intended-isolation-guarantees) hold yet, because the executor does not exist.
+The executor does not exist, so none of the guarantees in [Intended isolation guarantees](#intended-isolation-guarantees) hold yet.
 
-Do not point this version at a real agent and expect containment. There is no command that launches an agent.
+The adapter layer can call out. `HttpAgent` posts the task to a URL you configure. The OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine. They are not a sandbox. A target that runs tools on its own host is not contained, because AgentSheild never sees the calls.
+
+There is still no command that launches an audit. Do not point a live agent at this tree and expect containment.

@@ -1,0 +1,16 @@
+{
+  "id": "chatcmpl-final-only",
+  "model": "gpt-test",
+  "usage": {"total_tokens": 5},
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The notes are empty.",
+        "annotations": []
+      }
+    }
+  ]
+}

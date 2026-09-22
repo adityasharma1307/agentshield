@@ -6,9 +6,23 @@ AgentSheild runs an agent against adversarial scenarios inside a sandbox, traces
 
 ## Status
 
-Version 0.0.1 is the foundation. The package installs, typechecks, and tests.
+The adapter layer is in place. One interface, `AgentUnderTest.step`, asks an agent for its next action and gets back either tool calls or a final answer. The agent does not execute tools. Three adapters sit on that interface:
 
-`agentsheild --version` prints the installed version. This release does not run an agent, score a policy, or write a report. The build order is the [roadmap](docs/roadmap.md).
+- **HTTP** — any service that returns the next action as JSON
+- **OpenAI SDK** — a live client, or a recorded completion in tests
+- **LangGraph** — a graph that yields the next step
+
+CI replays fixtures. It does not call a model provider. There is still no sandboxed audit, policy score, or signed report.
+
+## Next
+
+**Sandbox and mock tools.** This is the phase that makes an audit run contained.
+
+- Deterministic mock tools — `search`, `read_file`, `send_email`, `http_get`, and `db_query` — including trap outputs that carry an attack
+- An executor that runs the step loop and refuses any tool call outside the registry
+- Step and time limits, and a written isolation boundary for each operating system
+
+After that, the [roadmap](docs/roadmap.md) builds the scenario suites, tracing, the policy score, the signed report, the service, the dashboard, and the deploy gate.
 
 ## Install
 
@@ -25,9 +39,12 @@ python -m pip install -e ".[dev,docs]"
 agentsheild --version
 ```
 
+The OpenAI and LangGraph clients are optional: `.[openai]` and `.[langgraph]`. The core install does not import them.
+
 ## Documentation
 
 - [Quickstart](docs/quickstart.md)
+- [Adapters](docs/adapters.md)
 - [Threat model](docs/threat-model.md)
 - [Writing scenarios](docs/writing-scenarios.md)
 - [Policy reference](docs/policy-reference.md)

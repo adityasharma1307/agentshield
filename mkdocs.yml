@@ -18,6 +18,7 @@ theme:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Adapters: adapters.md
   - Writing scenarios: writing-scenarios.md
   - Policy reference: policy-reference.md
   - Threat model: threat-model.md

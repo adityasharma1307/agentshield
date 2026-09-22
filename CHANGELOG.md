@@ -6,6 +6,11 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
+### Added
+
+- `AgentUnderTest.step`, which returns the next tool calls or a final answer and does not execute tools.
+- HTTP, OpenAI SDK, and LangGraph adapters. OpenAI and LangGraph are optional extras. CI replays fixtures and does not call a live model.
+
 ## [0.0.1] - 2026-09-22
 
 ### Added

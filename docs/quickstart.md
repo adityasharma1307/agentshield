@@ -34,7 +34,7 @@ python -m venv .venv
 | `agentsheild --help` | Prints command help. |
 | `agentsheild` | Prints command help and exits 0. |
 
-There is no `run`, `verify`, or `report` subcommand yet.
+There is no `run`, `verify`, or `report` subcommand yet. The library can take one step from an HTTP service, the OpenAI SDK, or a LangGraph graph. See [Adapters](adapters.md). That call does not execute tools and does not produce an audit.
 
 ## Checks
 

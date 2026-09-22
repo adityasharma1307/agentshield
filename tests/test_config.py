@@ -13,6 +13,12 @@ def test_defaults() -> None:
     assert settings.suite_dir == Path("suites")
     assert settings.policy_path == Path("policy.yaml")
     assert settings.report_dir == Path("reports")
+    assert settings.http_timeout_s == 30
+
+
+def test_http_timeout_must_be_positive() -> None:
+    with pytest.raises(ValidationError):
+        Settings(http_timeout_s=0)
 
 
 def test_overrides() -> None:

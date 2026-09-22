@@ -2,7 +2,7 @@
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
-> **Status:** Phase 0 (foundation) is in this repository. Phases 1–10 are open.
+> **Status:** Phases 0 and 1 are in this repository. Phases 2–10 are open.
 
 Point AgentSheild at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
@@ -129,12 +129,12 @@ agentsheild/
 - **DoD:** green CI on skeleton; editable install works.
 
 ### Phase 1 — Agent adapter layer
-- [ ] Define `AgentUnderTest` ABC: `run(task, tools, context) -> AgentTrace`; typed inputs/outputs.
-- [ ] Implement `http.py` (generic REST agent) first — lowest coupling, testable with a fake server.
-- [ ] Implement `openai_sdk.py` adapter.
-- [ ] Implement `langgraph.py` adapter.
-- [ ] Record real transcripts as fixtures so CI never calls a live model.
-- [ ] Unit tests per adapter against fixtures.
+- [x] Define `AgentUnderTest` ABC: `step(task, tools, history, context) -> AgentStep`. The adapter returns the next action and does not execute tools.
+- [x] Implement `http.py` (generic REST agent) first — lowest coupling, testable with a fake server.
+- [x] Implement `openai_sdk.py` adapter.
+- [x] Implement `langgraph.py` adapter.
+- [x] Record real transcripts as fixtures so CI never calls a live model.
+- [x] Unit tests per adapter against fixtures.
 - **DoD:** three agent kinds run through one interface; no live LLM in CI.
 
 ### Phase 2 — Sandbox & mock tools
