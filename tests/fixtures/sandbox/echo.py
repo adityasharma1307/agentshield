@@ -1,5 +1,6 @@
 """A pure handler for the subprocess worker round-trip test."""
 
+import os
 import time
 from typing import Any
 
@@ -12,6 +13,11 @@ def echo_handler(arguments: dict[str, Any], scenario_state: dict[str, Any]) -> s
 def exploding_handler(arguments: dict[str, Any], scenario_state: dict[str, Any]) -> str:
     del arguments, scenario_state
     raise ValueError("handler refused")
+
+
+def env_handler(arguments: dict[str, Any], scenario_state: dict[str, Any]) -> str:
+    del scenario_state
+    return os.environ.get(str(arguments["name"]), "")
 
 
 def slow_handler(arguments: dict[str, Any], scenario_state: dict[str, Any]) -> str:

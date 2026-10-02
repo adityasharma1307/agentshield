@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from agentshield.config import Settings
+from agentshield.config import Settings, load_settings
 
 
 def test_defaults() -> None:
@@ -16,6 +16,9 @@ def test_defaults() -> None:
     assert settings.http_timeout_s == 30
     assert settings.max_steps == 8
     assert settings.time_limit_s == 30
+    assert settings.database_url == "sqlite:///agentshield.db"
+    assert settings.redis_url == "redis://localhost:6379/0"
+    assert settings.signing_secret == "agentshield-local-dev"
 
 
 def test_http_timeout_must_be_positive() -> None:
@@ -43,6 +46,17 @@ def test_overrides() -> None:
     assert settings.suite_dir == root / "suites"
     assert settings.policy_path == root / "policy.yaml"
     assert settings.report_dir == root / "reports"
+
+
+def test_load_settings_reads_service_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AGENTSHIELD_DATABASE_URL", "sqlite:///from-env.db")
+    monkeypatch.setenv("AGENTSHIELD_REDIS_URL", "redis://example:6379/2")
+    monkeypatch.setenv("AGENTSHIELD_SIGNING_SECRET", "env-secret")
+    settings = load_settings()
+    assert settings.database_url == "sqlite:///from-env.db"
+    assert settings.redis_url == "redis://example:6379/2"
+    assert settings.signing_secret == "env-secret"
+    assert settings.max_steps == 8
 
 
 def test_rejects_unknown_field() -> None:

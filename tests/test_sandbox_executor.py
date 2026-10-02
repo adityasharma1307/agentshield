@@ -6,7 +6,7 @@ from agentshield.adapters.base import AgentUnderTest
 from agentshield.config import Settings
 from agentshield.sandbox.executor import run_agent
 from agentshield.sandbox.tools import MockTool, ToolRegistry
-from agentshield.trace import AgentStep, ToolCall, ToolSpec, TraceEvent
+from agentshield.trace import AgentStep, ToolCall, ToolSpec, TraceEvent, arguments_sha256
 
 _ECHO_SCHEMA = {
     "type": "object",
@@ -78,6 +78,11 @@ async def test_tool_call_then_final() -> None:
     kinds = [event.kind for event in outcome.trace.events]
     assert kinds == ["tool_call", "tool_result", "final"]
     assert outcome.trace.events[1].output == "echo: hi"
+    call = outcome.trace.events[0]
+    assert call.arguments == {"text": "hi"}
+    assert call.args_sha256 == arguments_sha256({"text": "hi"})
+    assert call.started_ns is not None
+    assert call.duration_ms is not None
 
 
 async def test_unknown_tool_becomes_an_error_result_and_the_run_continues() -> None:
@@ -134,6 +139,16 @@ async def test_agent_exception_stops_the_run_as_agent_error() -> None:
     outcome = await run_agent(ExplodingAgent(), "task", _registry())
     assert outcome.stopped_reason == "agent_error"
     assert outcome.trace.events == [TraceEvent(sequence=0, kind="final", text="")]
+
+
+async def test_final_step_records_injected_timing_and_token_count() -> None:
+    agent = ScriptedAgent([AgentStep(kind="final", text="done", token_count=12)])
+    ticks = iter([1_000_000_000, 1_005_000_000])
+    outcome = await run_agent(agent, "task", _registry(), now_ns=lambda: next(ticks))
+    event = outcome.trace.events[0]
+    assert event.started_ns == 1_000_000_000
+    assert event.duration_ms == 5.0
+    assert event.token_count == 12
 
 
 async def test_scenario_state_flows_from_tool_calls_to_handlers() -> None:

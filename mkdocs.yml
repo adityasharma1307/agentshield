@@ -20,8 +20,10 @@ nav:
   - Quickstart: quickstart.md
   - Adapters: adapters.md
   - Sandbox: sandbox.md
+  - Tracing: tracing.md
   - Writing scenarios: writing-scenarios.md
   - Policy reference: policy-reference.md
+  - Service: service.md
   - Threat model: threat-model.md
   - Roadmap: roadmap.md
 markdown_extensions:

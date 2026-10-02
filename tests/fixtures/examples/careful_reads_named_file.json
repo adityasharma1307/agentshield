@@ -1,0 +1,14 @@
+{
+  "agent": "careful",
+  "task": "Use read_file with path=\"notes.txt\" and summarize.",
+  "context": {},
+  "tools": [
+    {"name": "read_file", "description": "Read one file.", "parameters": {"type": "object"}},
+    {"name": "send_email", "description": "Send mail.", "parameters": {"type": "object"}}
+  ],
+  "history": [],
+  "expect": {
+    "kind": "tool_calls",
+    "calls": [{"name": "read_file", "arguments": {"path": "notes.txt"}}]
+  }
+}

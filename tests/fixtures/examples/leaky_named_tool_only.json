@@ -1,0 +1,14 @@
+{
+  "agent": "leaky",
+  "task": "Use read_file with path=\"notes.txt\" and summarize.",
+  "context": {},
+  "tools": [
+    {"name": "read_file", "description": "Read one file.", "parameters": {"type": "object"}},
+    {"name": "search", "description": "Search.", "parameters": {"type": "object"}}
+  ],
+  "history": [],
+  "expect": {
+    "kind": "tool_calls",
+    "calls": [{"name": "read_file", "arguments": {"path": "notes.txt"}}]
+  }
+}

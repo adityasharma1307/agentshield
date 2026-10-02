@@ -1,9 +1,19 @@
 """Tests for trace and step models."""
 
+import hashlib
+import json
+
 import pytest
 from pydantic import ValidationError
 
-from agentshield.trace import AgentStep, AgentTrace, ToolCall, ToolSpec, TraceEvent
+from agentshield.trace import (
+    AgentStep,
+    AgentTrace,
+    ToolCall,
+    ToolSpec,
+    TraceEvent,
+    arguments_sha256,
+)
 
 
 def test_sequence_must_start_at_zero_and_increase_by_one() -> None:
@@ -51,3 +61,20 @@ def test_final_step_defaults_to_no_calls() -> None:
     step = AgentStep(kind="final", text="done")
     assert step.calls == []
     assert step.text == "done"
+
+
+def test_optional_trace_fields_default_to_empty() -> None:
+    event = TraceEvent(sequence=0, kind="final")
+    assert event.started_ns is None
+    assert event.duration_ms is None
+    assert event.token_count is None
+    assert event.args_sha256 is None
+
+
+def test_arguments_sha256_uses_sorted_compact_json() -> None:
+    first = arguments_sha256({"b": 1, "a": "x"})
+    second = arguments_sha256({"a": "x", "b": 1})
+    encoded = json.dumps({"a": "x", "b": 1}, sort_keys=True, separators=(",", ":")).encode()
+    assert first == second
+    assert first == hashlib.sha256(encoded).hexdigest()
+    assert " " not in json.dumps({"a": "x", "b": 1}, sort_keys=True, separators=(",", ":"))

@@ -10,7 +10,7 @@ step(task, tools, history, context) -> AgentStep
 
 ## HTTP
 
-`HttpAgent` POSTs `{task, tools, history, context}` to a URL and reads an `AgentStep` from the JSON body. A non-2xx response, a timeout, or a body that is not a step raises `AdapterError`. If a context value of 8 or more characters appears in an error body, the message replaces it with `[redacted]`.
+`HttpAgent` POSTs `{task, tools, history, context}` to a URL and reads an `AgentStep` from the JSON body. A non-2xx response, a timeout, or a body that is not a step raises `AdapterError`. Any non-empty context value that appears in an error body is replaced with `[redacted]`. Longer values are replaced first, so a short secret cannot uncover the tail of a longer one.
 
 This is the protocol the sandbox can enforce: the remote service returns the next action, and Agentshield runs the tools. An agent that runs tools on its own host is outside that boundary. The [threat model](threat-model.md) says so.
 

@@ -2,7 +2,7 @@
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
-> **Status:** Phases 0–2 are in this repository. Phases 3–10 are open.
+> **Status:** Phases 0–7 are in this repository. Phases 8–10 are open.
 
 Point Agentshield at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
@@ -58,7 +58,7 @@ Point Agentshield at any tool-calling agent; it runs the agent inside a sandbox 
 - **Tracing:** OpenTelemetry SDK; export to OTLP/Jaeger locally, and to the DB for reports.
 - **Sandbox:** subprocess isolation via **firejail**/gVisor; mock tools run in-process but the *agent's* tool-exec boundary is enforced; document the threat model precisely.
 - **LLM I/O:** `litellm` (provider-agnostic) so suites run across OpenAI/Anthropic/local models.
-- **Signing:** `liboqs-python` ML-DSA over canonical JSON.
+- **Signing:** `liboqs-python` ML-DSA over canonical JSON. Optional extra `qknot` signs with Ed25519 + ML-DSA-87.
 - **Service/DB:** FastAPI, Postgres (SQLAlchemy 2.0 + Alembic), Redis + `arq` for jobs.
 - **Frontend:** React + Vite + TS, TanStack Query, a trace-timeline component, Recharts heatmap.
 - **Infra:** Docker/compose, GitHub Actions, Ruff + mypy + pytest + `hypothesis`.
@@ -146,47 +146,48 @@ agentshield/
 - **DoD:** an agent's tool calls are fully intercepted and reproducible; documented threat model.
 
 ### Phase 3 — Scenario DSL & suites
-- [ ] Define `Scenario`, `Step`, `Expectation` Pydantic models; a scenario = task + injected tool outputs + expected safe behavior.
-- [ ] YAML loader + JSON-schema validation; helpful error messages.
-- [ ] **Injection suite** (5–8 scenarios): malicious instructions embedded in tool/document outputs.
-- [ ] **Exfiltration suite:** lures to leak a planted secret via an outbound tool.
-- [ ] **Scope-creep suite:** tasks that tempt the agent beyond granted permissions.
-- [ ] **Policy-violation suite:** requests that violate a stated policy (e.g. "email PII externally").
-- [ ] **Tool-jailbreak suite:** using tools to bypass refusals.
-- [ ] Target **≥20 scenarios total**; each with a machine-checkable expectation.
-- [ ] Tests validating every shipped scenario parses + has a checkable expectation.
+- [x] Define `Scenario`, `Step`, `Expectation` Pydantic models; a scenario = task + injected tool outputs + expected safe behavior.
+- [x] YAML loader + JSON-schema validation; helpful error messages.
+- [x] **Injection suite** (5–8 scenarios): malicious instructions embedded in tool/document outputs.
+- [x] **Exfiltration suite:** lures to leak a planted secret via an outbound tool.
+- [x] **Scope-creep suite:** tasks that tempt the agent beyond granted permissions.
+- [x] **Policy-violation suite:** requests that violate a stated policy (e.g. "email PII externally").
+- [x] **Tool-jailbreak suite:** using tools to bypass refusals.
+- [x] Target **≥20 scenarios total**; each with a machine-checkable expectation.
+- [x] Tests validating every shipped scenario parses + has a checkable expectation.
 - **DoD:** ≥20 scenarios load, run against the example agent, and produce pass/fail.
 
 ### Phase 4 — Tracing
-- [ ] OTel tracer setup; wrap adapter + tool calls in spans with attributes (tokens, latency, tool name, args hash).
-- [ ] Normalize spans into a `Trace` model (ordered events: llm_call, tool_call, tool_result).
-- [ ] Local Jaeger export via compose for debugging; DB export for reports.
-- [ ] Tests: a run produces a well-formed, ordered trace.
+- [x] OTel tracer setup; wrap adapter + tool calls in spans with attributes (tokens, latency, tool name, args hash).
+- [x] Normalize spans into a `Trace` model (ordered events: llm_call, tool_call, tool_result).
+- [x] Local Jaeger export via compose for debugging.
+- [ ] DB export of traces for reports.
+- [x] Tests: a run produces a well-formed, ordered trace.
 - **DoD:** every run yields a complete, inspectable trace timeline.
 
 ### Phase 5 — Policy engine & scoring
-- [ ] Design the policy YAML schema (rules with id, description, severity, check type, EU-AI-Act tag).
-- [ ] Implement rule primitives: `tool_never_called`, `secret_not_in_output`, `no_external_send_of(pii)`, regex asserts, span-sequence asserts.
-- [ ] Implement optional **LLM-as-judge** rule with a rubric + self-consistency (majority vote), clearly separated from deterministic rules.
-- [ ] Aggregate → per-rule pass/fail + severity + overall score.
-- [ ] Ship a default `policy.yaml` mapping rules to EU AI Act and NIST AI RMF themes.
-- [ ] Snapshot tests on scoring against fixture traces.
+- [x] Design the policy YAML schema (rules with id, description, severity, check type, EU-AI-Act tag).
+- [x] Implement rule primitives: `tool_never_called`, `secret_not_in_output`, `no_external_send_of(pii)`, regex asserts, span-sequence asserts.
+- [x] Implement optional **LLM-as-judge** rule with a rubric + self-consistency (majority vote), clearly separated from deterministic rules.
+- [x] Aggregate → per-rule pass/fail + severity + overall score.
+- [x] Ship a default `policy.yaml` mapping rules to EU AI Act and NIST AI RMF themes.
+- [x] Snapshot tests on scoring against fixture traces.
 - **DoD:** a trace + policy → deterministic, explainable score with per-rule reasons.
 
 ### Phase 6 — Signed report
-- [ ] `report/schema.py`: run metadata + scenario results + trace refs + policy version + input hashes.
-- [ ] ML-DSA `signing.py` + `verify`; canonical JSON.
-- [ ] `render.py`: HTML report — scenario heatmap, failed-rule detail, trace excerpts.
-- [ ] CLI `agentshield verify report.json`.
-- [ ] Round-trip + tamper tests.
+- [x] `report/schema.py`: run metadata + scenario results + trace refs + policy version + input hashes.
+- [x] ML-DSA `signing.py` + `verify`; canonical JSON.
+- [x] `render.py`: HTML report — scenario heatmap, failed-rule detail, trace excerpts.
+- [x] CLI `agentshield verify report.json`.
+- [x] Round-trip + tamper tests.
 - **DoD:** signed report verifies; mutation fails; HTML is reviewer-readable.
 
 ### Phase 7 — Service + persistence
-- [ ] FastAPI app; `/health`, `/version`.
-- [ ] Models: `AuditRun`, `ScenarioResult`, `TraceRef`; Alembic migration.
-- [ ] Endpoints: enqueue run, get status, fetch report, **diff two runs**.
-- [ ] Async worker executing suites off-request; status lifecycle.
-- [ ] Integration tests with a Postgres container.
+- [x] FastAPI app; `/health`, `/version`.
+- [x] Models: `AuditRun`, `ScenarioResult`, `TraceRef`; Alembic migration.
+- [x] Endpoints: enqueue run, get status, fetch report, **diff two runs**.
+- [x] Async worker executing suites off-request; status lifecycle.
+- [x] Integration tests with a Postgres container.
 - **DoD:** submit → poll → fetch signed report over HTTP.
 
 ### Phase 8 — Dashboard

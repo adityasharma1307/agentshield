@@ -8,7 +8,7 @@ This document states the guarantees the sandbox is being built to provide. [Curr
 
 - **Planted secrets.** A scenario may include a canary string. The agent must not copy it into a tool argument or into its final answer. A leak is a failed scenario, and a leak that reaches a real network or mailbox is an isolation failure.
 - **The host.** Files, processes, credentials, and network sockets outside the audit run.
-- **The report.** The score and the trace a reviewer relies on. Tampering with a signed report is covered when signing lands (Phase 6). Signing is not in this version.
+- **The report.** The score and the trace a reviewer relies on. `agentshield verify` checks a signature over the report's canonical JSON. The default CI signer is `LocalSigner` (HMAC, algorithm `local`) and is not ML-DSA. ML-DSA-44 runs when the `pq` extra imports. Algorithm `qknot` is Ed25519 plus ML-DSA-87 from the `qknot` extra. That check succeeds when the canonical bytes match the public keys stored in the bundle.
 
 ## Actors
 
@@ -33,11 +33,11 @@ Process isolation will be a subprocess with resource limits. On platforms where 
 - **The model provider.** Prompts sent to an external model leave the machine. Suites that must stay offline use recorded transcripts. CI never calls a live model.
 - **Operator credentials.** API keys are the operator's secrets. The report must not contain them. Protecting the key beyond the process boundary of the operator's own environment is out of scope.
 - **A malicious agent package.** The operator trusts the adapter code they configured. The sandbox contains the agent's *tool* boundary. It is not a promise that untrusted Python the operator installed cannot touch the host. Subprocess isolation, and firejail or gVisor where configured, narrows that gap. The report will name the boundary so a reviewer can see which promise they got.
-- **Report authenticity in this version.** ML-DSA signing and tamper detection are Phase 6.
+- **Which person signed a qknot report.** Verification of algorithm `qknot` uses the public keys inside the bundle. It does not bind those keys to an identity.
 
 ## Scenario threats
 
-Once the runner exists, the shipped suites target these behaviors. They are product tests of the agent, not exploits against the host.
+The scenario runner executes the shipped suites. They are product tests of the agent, not exploits against the host.
 
 | Suite | Failure being measured |
 | --- | --- |
@@ -54,11 +54,11 @@ The executor (`agentshield.sandbox.executor.run_agent`) exists and enforces guar
 1. **Mock tools only — holds.** `run_agent` never calls anything but `ToolRegistry.dispatch`. The agent object is not given the registry, so a tool call can only reach a `MockTool` handler.
 2. **Deterministic tool output — holds for the shipped tools.** Each builtin handler (`search`, `read_file`, `send_email`, `http_get`, `db_query`) is a pure function of its arguments and `scenario_state`. A custom handler an operator registers is only deterministic if they wrote it that way; nothing enforces purity.
 3. **Resource limits — holds for step count and wall-clock time.** `Settings.max_steps` (default 8) and `Settings.time_limit_s` (default 30) stop the loop and close the trace with an empty `final` event. There is no memory limit yet.
-4. **No raw network — holds in `subprocess` mode when `firejail` is on `PATH`.** In the default `inprocess` boundary, a handler that ignored the "pure" contract and imported `socket` directly would succeed; nothing at the OS level stops it. `run_in_subprocess` launches that child under `firejail --noprofile --net=none --private-tmp` when the binary is installed. Inside WSL, firejail would otherwise refuse to nest and the child would keep its network; the launcher sets `container=lxc` so the deny rule applies. CI installs firejail on the Ubuntu runners and runs the network-deny test. A Windows process has no firejail binary, so the same test skips there. gVisor's `runsc` is detected and reported when present; nothing wraps a child with it yet.
-5. **Trace completeness — holds.** Every `tool_call` and `tool_result` the executor produces is appended before the loop can stop, including calls the registry rejected (`UnknownToolError`, `ToolArgumentError`), which become an `error:`-prefixed `tool_result`.
+4. **No raw network — holds in `subprocess` mode when `firejail` is on `PATH`.** In the default `inprocess` boundary, a handler that ignored the "pure" contract and imported `socket` directly would succeed; nothing at the OS level stops it. `run_in_subprocess` launches that child under `firejail --noprofile --net=none --private-tmp` when the binary is installed. The child receives an allowlist environment, not the parent environment, so a handler cannot read the operator's API keys from the process environment. Inside WSL, firejail would otherwise refuse to nest and the child would keep its network; the launcher sets `container=lxc` so the deny rule applies. CI installs firejail on the Ubuntu runners and runs the network-deny test. A Windows process has no firejail binary, so the same test skips there. gVisor's `runsc` is detected and reported when present; nothing wraps a child with it yet.
+5. **Trace completeness — holds.** Every `tool_call` and `tool_result` the executor produces is appended before the loop can stop, including calls the registry rejected (`UnknownToolError`, `ToolArgumentError`), which become an `error:`-prefixed `tool_result`. The trace keeps the full tool arguments on the event. OpenTelemetry span attributes do not: they carry the event kind, the tool name, the sha256 of the canonical arguments, the duration, and the token count when the adapter supplied one. A canary in an argument stays in the trace and stays off the span.
 
 A run reported as `inprocess`, or as `subprocess` with `network_denied: False`, is not network-contained. That is the PowerShell suite on Windows. Ubuntu CI, and Ubuntu WSL with firejail installed, report `network_denied: True` for subprocess mode. Treat a handler an operator wrote themselves as trusted code unless that report says the network was denied.
 
 The adapter layer can still call out on its own: `HttpAgent` posts the task to a URL you configure, and the OpenAI adapter calls the OpenAI API when you give it a live client. Those calls leave the machine before the executor ever sees a tool call. A target that runs tools on its own host is not contained, because Agentshield never sees those calls either.
 
-There is still no scenario file, no policy score, no signed report, and no command that launches an audit end-to-end. Do not point a live agent at this tree and expect containment beyond what is stated above.
+Shipped scenario files load, and `agentshield scenarios` lists them without running an audit. There is still no policy score, no signed report, and no command that launches an audit end-to-end. Do not point a live agent at this tree and expect containment beyond what is stated above.

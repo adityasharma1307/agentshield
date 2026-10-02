@@ -92,6 +92,29 @@ async def test_http_error_redacts_context_secrets() -> None:
     assert "[redacted]" in message
 
 
+async def test_http_error_redacts_a_short_context_secret() -> None:
+    short = "s3cr"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(500, text=f"boom {short} leaked")
+
+    async with _agent(handler) as agent:
+        with pytest.raises(AdapterError) as caught:
+            await agent.step("task", [], [], {"pin": short})
+    message = str(caught.value)
+    assert short not in message
+    assert "[redacted]" in message
+
+
+def test_excerpt_redacts_a_short_prefix_before_it_can_uncover_a_longer_secret() -> None:
+    from agentshield.adapters.http import _excerpt
+
+    text = _excerpt("see abcdef now", {"short": "ab", "long": "abcdef"})
+    assert "abcdef" not in text
+    assert text == "see [redacted] now"
+
+
 async def test_invalid_json() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         del request

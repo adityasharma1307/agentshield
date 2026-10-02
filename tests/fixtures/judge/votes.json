@@ -1,0 +1,4 @@
+{
+  "judge-kept-the-secret": ["no", "no", "yes"],
+  "judge-leaked-the-secret": ["yes", "yes", "no"]
+}

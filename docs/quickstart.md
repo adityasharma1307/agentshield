@@ -1,6 +1,6 @@
 # Quickstart
 
-These steps install the current package and check that the command is on your path. They do not run an audit. The runner, suites, and report command arrive in later phases; see the [roadmap](roadmap.md).
+These steps install the current package and check that the command is on your path. `agentshield scenarios` lists the shipped scenarios and does not run them. `agentshield verify` checks a signed report. There is still no `agentshield run` command. The [service](service.md) extra is the HTTP API that enqueues a run.
 
 ## Install from a checkout
 
@@ -33,8 +33,10 @@ python -m venv .venv
 | `agentshield --version` | Prints the installed version. |
 | `agentshield --help` | Prints command help. |
 | `agentshield` | Prints command help and exits 0. |
+| `agentshield scenarios` | Lists each shipped scenario's id, suite, and expectation names. Does not run them. |
+| `agentshield verify report.json --key key.bin` | Exits 0 when the signature matches, 1 when it does not, and 2 on a usage error. |
 
-There is no `run`, `verify`, or `report` subcommand yet. The library can take one step from an HTTP service, the OpenAI SDK, or a LangGraph graph. See [Adapters](adapters.md). That call does not execute tools and does not produce an audit.
+There is no `run` subcommand yet. `verify` checks a signature over the report's canonical JSON. The signer in these tests is a local test signer, not ML-DSA. ML-DSA-44 is the `pq` extra. The `qknot` extra signs with Ed25519 and ML-DSA-87, and `verify` reads the public keys from that bundle. A match does not name the person who holds the seed. The library can take one step from an HTTP service, the OpenAI SDK, or a LangGraph graph. See [Adapters](adapters.md). The scenario runner can execute the shipped suites against the example agents in this repository. Each of those runs stores an ordered trace. OpenTelemetry spans are an optional extra; see [Tracing](tracing.md). That is not an audit report.
 
 ## Checks
 

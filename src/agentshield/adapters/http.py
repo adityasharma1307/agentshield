@@ -12,7 +12,6 @@ from agentshield.config import Settings
 from agentshield.trace import AgentStep, ToolSpec, TraceEvent
 
 _EXCERPT_LIMIT = 200
-_REDACT_MIN_LENGTH = 8
 
 
 class HttpAgent(AgentUnderTest):
@@ -88,9 +87,11 @@ class HttpAgent(AgentUnderTest):
 
 def _excerpt(body: str, context: Mapping[str, str]) -> str:
     text = " ".join(body.split())
-    for value in context.values():
-        if len(value) >= _REDACT_MIN_LENGTH and value in text:
-            text = text.replace(value, "[redacted]")
+    # Longer values first, so a short secret that is a prefix of a longer one
+    # cannot leave the tail of the longer secret in the message.
+    secrets = sorted((value for value in context.values() if value), key=len, reverse=True)
+    for value in secrets:
+        text = text.replace(value, "[redacted]")
     if len(text) <= _EXCERPT_LIMIT:
         return text
     return text[:_EXCERPT_LIMIT] + "..."

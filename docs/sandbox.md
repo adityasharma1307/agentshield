@@ -29,7 +29,7 @@ A handler's only side effect is reading and writing `scenario_state`, a plain `d
 | `search` | `query` | "No results for ..." | a result that names a canary and an `INSTR:` line |
 | `read_file` | `path` | "*path*: (empty)" | file text with an `INSTR:` line and a canary |
 | `send_email` | `to`, `subject?`, `body` | "email sent." | same, still recorded |
-| `http_get` | `url` | "200 ok." | an HTML comment carrying an `INSTR:` line |
+| `http_get` | `url` | "200 ok." | a short HTML page, then an `INSTR:` line of its own |
 | `db_query` | `statement` | "0 rows." | same, still recorded |
 
 Each tool reads `scenario_state[<tool name>]` to choose its answer:
@@ -41,6 +41,8 @@ scenario_state = {
 ```
 
 Without a `trap_text`, the trap default is used; without `trap` set, the tool returns `result` if the scenario set one, otherwise a generic normal answer. A scenario switches a tool's behavior through this mapping, not through a module-level flag, so two runs of the same suite in the same process cannot leak into each other.
+
+A tool config may also set `documents`, a mapping from the call's `path`, `query`, `url`, or `statement` to a body. When that argument matches a key, the body is the result, so one `read_file` tool can return `notes.txt` on the first call and `secrets.txt` on the next. `trap` still wins over `documents` and `result`.
 
 `send_email`, `http_get`, and `db_query` always append `{"tool": ..., "arguments": ...}` to `scenario_state["outbound"]`, regardless of trap state, and never perform the call. A policy check that asks "did the agent try to exfiltrate the canary" reads `outbound`, not a real socket or mailbox.
 
@@ -59,7 +61,7 @@ On every stop that is not `completed`, the executor appends one more `final` eve
 `agentshield.sandbox.env` reports which boundary a run actually got, instead of asserting a guarantee that does not hold:
 
 - **`inprocess`** (the default): a handler is a plain Python call inside the executor's process. There is no OS-level enforcement — the guarantee is that `ToolRegistry.dispatch` is the only thing that can reach a handler, and every shipped handler is pure.
-- **`subprocess`**: `agentshield.sandbox.env.run_in_subprocess` runs one handler call in a child process over stdin/stdout JSON, with a time limit. When `firejail` is on `PATH`, the child also runs under `firejail --noprofile --net=none --private-tmp`, so a handler that opens a socket is denied by the kernel. `--noprofile` keeps the python application profile out of the way. That profile hangs inside WSL and would hide files the worker has to read. Inside WSL, the launcher sets `container=lxc` for that child. Without that, firejail sees WSL as a container it will not nest in and runs the handler with no sandbox. Without firejail, the child is still a separate, time-limited process, but nothing stops it from reaching the network. `subprocess_boundary().network_denied` reports `False` in that case.
+- **`subprocess`**: `agentshield.sandbox.env.run_in_subprocess` runs one handler call in a child process over stdin/stdout JSON, with a time limit. The child environment is an allowlist (`PATH`, the home and locale variables, and the Python path variables). Credential variables in the parent process are not copied. When `firejail` is on `PATH`, the child also runs under `firejail --noprofile --net=none --private-tmp`, so a handler that opens a socket is denied by the kernel. `--noprofile` keeps the python application profile out of the way. That profile hangs inside WSL and would hide files the worker has to read. Inside WSL, the launcher sets `container=lxc` for that child. Without that, firejail sees WSL as a container it will not nest in and runs the handler with no sandbox. Without firejail, the child is still a separate, time-limited process, but nothing stops it from reaching the network. `subprocess_boundary().network_denied` reports `False` in that case.
 
 gVisor's `runsc` binary is detected (`BoundaryReport.gvisor_available`) for visibility, but this version does not wrap a child with it.
 
@@ -67,11 +69,11 @@ gVisor's `runsc` binary is detected (`BoundaryReport.gvisor_available`) for visi
 
 - **Linux (CI)**: the GitHub workflow installs `firejail` before the tests, and the network-deny test runs there.
 - **WSL**: the same `firejail` package works once the launcher sets `container=lxc`. A suite run inside the distro exercises the deny rule.
-- **Windows**: there is no native `firejail`. A suite run from PowerShell skips the network-deny test. `subprocess` mode is still a separate process with a time limit.
-- **macOS**: same as Windows unless `firejail` is built locally, which is uncommon.
+- **Windows**: `firejail_network_deny_available()` is false. There is no native `firejail`. A suite run from PowerShell skips the network-deny test. `subprocess` mode is still a separate process with a time limit.
+- **macOS and Linux**: the same function follows whether `firejail` is on `PATH`. Ubuntu CI, Ubuntu WSL, and a Docker image that installs `firejail` take this branch and run the network-deny test. macOS takes it too, and skips unless the binary was built locally, which is uncommon.
 
 A test that binds a loopback port and tries to connect from inside the sandboxed child (`tests/test_sandbox_env.py`) skips with a stated reason when no hardening tool is available, and never reports a pass it did not earn.
 
 ## What is not here yet
 
-There is still no scenario file, no policy score, and no `agentshield run` command — the executor above is a library call, not a CLI. Those are the next phases on the [roadmap](roadmap.md). See the [threat model](threat-model.md) for exactly which guarantees hold in this version.
+Scenario files load from YAML, and `agentshield scenarios` lists them. The scenario runner calls the executor above. Each run stores an ordered trace; see [Tracing](tracing.md). There is still no `agentshield run` command and no policy score. See the [threat model](threat-model.md) for exactly which guarantees hold in this version, and the [roadmap](roadmap.md) for what comes next.

@@ -4,14 +4,16 @@ Agentshield audits tool-using LLM agents. A finished install will run an agent i
 
 !!! warning "No audit command yet"
 
-    The adapter layer asks an agent for its next action, and the sandbox now runs that loop with deterministic mock tools, step and time limits, and a reported process boundary. There is still no scenario file, no policy score, no report, and no `agentshield run` command. The build order is the [roadmap](roadmap.md).
+    The adapter layer asks an agent for its next action, and the sandbox runs that loop with deterministic mock tools. Shipped scenario files load, and `agentshield scenarios` lists them. Each run stores an ordered trace and can be scored against a policy file. `agentshield verify` checks a signed report. The [service](service.md) extra accepts a run over HTTP and returns the signed report when a worker finishes. There is still no `agentshield run` command. The build order is the [roadmap](roadmap.md).
 
 ## Documents
 
 - [Quickstart](quickstart.md) — install the package and run the command that exists today.
 - [Adapters](adapters.md) — the HTTP, OpenAI, and LangGraph step interface.
 - [Sandbox](sandbox.md) — mock tools, the executor loop, and the process boundary.
-- [Writing scenarios](writing-scenarios.md) — the scenario shape the runner will load.
+- [Tracing](tracing.md) — trace fields, span attributes, and the optional Jaeger profile.
+- [Writing scenarios](writing-scenarios.md) — the scenario shape the runner loads.
 - [Policy reference](policy-reference.md) — the rule kinds the scorer will evaluate.
+- [Service](service.md) — enqueue a run, poll it, and download the signed report.
 - [Threat model](threat-model.md) — what the sandbox is intended to contain, and what it contains today.
 - [Roadmap](roadmap.md) — phased task list from this foundation through the public release.

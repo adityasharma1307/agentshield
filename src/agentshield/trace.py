@@ -1,9 +1,13 @@
 """Normalized trace and step models shared by adapters and later phases.
 
 The sandbox, not the adapter, executes tools. An adapter returns an `AgentStep`.
-The executor records `TraceEvent` values.
+The executor records `TraceEvent` values. Optional timing and `args_sha256`
+describe a call. The full arguments stay on the event.
 """
 
+import hashlib
+import json
+from collections.abc import Mapping
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -39,6 +43,10 @@ class TraceEvent(BaseModel):
     text: str | None = None
     arguments: dict[str, Any] | None = None
     output: str | None = None
+    started_ns: int | None = None
+    duration_ms: float | None = None
+    token_count: int | None = None
+    args_sha256: str | None = None
 
 
 class AgentTrace(BaseModel):
@@ -68,6 +76,7 @@ class AgentStep(BaseModel):
     kind: Literal["tool_calls", "final"]
     calls: list[ToolCall] = Field(default_factory=list)
     text: str = ""
+    token_count: int | None = None
 
     @model_validator(mode="after")
     def _shape_matches_kind(self) -> Self:
@@ -76,3 +85,9 @@ class AgentStep(BaseModel):
         if self.kind == "tool_calls" and not self.calls:
             raise ValueError("a tool_calls step has at least one call")
         return self
+
+
+def arguments_sha256(arguments: Mapping[str, Any]) -> str:
+    """Hex sha256 of canonical JSON: sorted keys, compact separators."""
+    encoded = json.dumps(arguments, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()

@@ -54,6 +54,22 @@ def detect_firejail() -> bool:
     return shutil.which("firejail") is not None
 
 
+def firejail_network_deny_available() -> bool:
+    """Whether this process can apply `firejail --net=none`.
+
+    Windows has no native binary, so the network-deny test skips there.
+    macOS and Linux (Ubuntu, WSL, and a Docker image) use firejail when the
+    binary is on PATH. An image must install firejail or this stays false
+    inside the container and the test skips.
+    """
+    if sys.platform == "win32":
+        return False
+    elif sys.platform in {"linux", "darwin"}:
+        return detect_firejail()
+    else:
+        return False
+
+
 def detect_gvisor() -> bool:
     """True when gVisor's `runsc` binary is on PATH."""
     return shutil.which("runsc") is not None
@@ -71,16 +87,55 @@ def _running_in_wsl() -> bool:
     return "microsoft" in lowered or "wsl" in lowered
 
 
-def _child_launch(worker: str) -> tuple[list[str], dict[str, str] | None]:
+# Names the child may see. Credential variables are not in this set, so a
+# handler cannot read the parent's API keys out of the environment.
+_CHILD_ENV_KEEP = frozenset(
+    {
+        "PATH",
+        "PATHEXT",
+        "SYSTEMROOT",
+        "WINDIR",
+        "COMSPEC",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        "HOME",
+        "USER",
+        "LOGNAME",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "PYTHONPATH",
+        "PYTHONHOME",
+        "VIRTUAL_ENV",
+        "PYTHONUTF8",
+        "PYTHONIOENCODING",
+        "PYTHONLEGACYWINDOWSSTDIO",
+    }
+)
+
+
+def _child_environment() -> dict[str, str]:
+    """An explicit environment for the handler child. Never the full parent environment."""
+    allowed = {name.upper() for name in _CHILD_ENV_KEEP}
+    env = {key: value for key, value in os.environ.items() if key.upper() in allowed}
+    if _running_in_wsl():
+        env["container"] = "lxc"
+    return env
+
+
+def _child_launch(worker: str) -> tuple[list[str], dict[str, str]]:
     """The command and environment for one handler child.
 
     Firejail treats WSL as a container it will not nest in, and then runs the
     program with no sandbox at all. Naming the runtime `lxc` is the supported
-    way to make `--net=none` apply there. Other hosts keep their own environment.
+    way to make `--net=none` apply there. The environment is an allowlist on
+    every host, with `container=lxc` added only under WSL.
     """
     command = [sys.executable, worker]
-    if not detect_firejail():
-        return command, None
+    env = _child_environment()
+    if not firejail_network_deny_available():
+        return command, env
     command = [
         "firejail",
         "--quiet",
@@ -89,10 +144,6 @@ def _child_launch(worker: str) -> tuple[list[str], dict[str, str] | None]:
         "--private-tmp",
         *command,
     ]
-    if not _running_in_wsl():
-        return command, None
-    env = os.environ.copy()
-    env["container"] = "lxc"
     return command, env
 
 
@@ -109,8 +160,8 @@ def inprocess_boundary() -> BoundaryReport:
 def subprocess_boundary() -> BoundaryReport:
     """Describe the subprocess boundary `run_in_subprocess` will actually apply.
 
-    `network_denied` is true only when firejail is available, because that is
-    the only hardening this module wraps a child process with. gVisor's
+    `network_denied` follows `firejail_network_deny_available`: false on
+    Windows, and on macOS or Linux only when `firejail` is on PATH. gVisor's
     presence is reported for visibility; nothing here launches a gVisor
     sandbox yet.
     """
@@ -118,7 +169,7 @@ def subprocess_boundary() -> BoundaryReport:
         boundary="subprocess",
         firejail_available=detect_firejail(),
         gvisor_available=detect_gvisor(),
-        network_denied=detect_firejail(),
+        network_denied=firejail_network_deny_available(),
     )
 
 
