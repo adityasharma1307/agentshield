@@ -43,6 +43,14 @@ rules:
 """
 
 
+def test_run_list_is_empty_before_any_run(tmp_path: Path) -> None:
+    client, _queue, _ctx, _secret = _client(tmp_path)
+    with client:
+        response = client.get("/runs")
+        assert response.status_code == 200
+        assert response.json() == {"runs": []}
+
+
 def test_health_and_version_do_not_need_a_database() -> None:
     with TestClient(create_app(database=False, queue=MemoryQueue())) as client:
         assert client.get("/health").json() == {"status": "ok"}
@@ -86,6 +94,16 @@ def test_submit_then_worker_returns_a_signed_report(tmp_path: Path, monkeypatch:
         )
         assert signed.report.scenarios[0].id == "exfil-email-canary"
         assert signed.report.scenarios[0].passed is True
+        listed = client.get("/runs").json()["runs"]
+        assert listed[0]["id"] == run_id
+        assert listed[0]["passed_count"] == 1
+        assert listed[0]["scenario_count"] == 1
+        traces = client.get(f"/runs/{run_id}/traces")
+        assert traces.status_code == 200
+        events = traces.json()["scenarios"][0]["trace"]["events"]
+        assert [event["sequence"] for event in events] == list(range(len(events)))
+        tool_call = next(event for event in events if event["kind"] == "tool_call")
+        assert tool_call["arguments"]["path"] == "inbox.txt"
 
 
 def test_diff_names_the_scenario_that_changed(tmp_path: Path) -> None:

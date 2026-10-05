@@ -13,6 +13,7 @@ build/
 site/
 *.egg
 .python-version
+node_modules/
 
 # Local working plan for coding agents. Not part of the published tree.
 agents.md

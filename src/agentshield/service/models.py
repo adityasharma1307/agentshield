@@ -53,7 +53,10 @@ class ScenarioResult(Base):
 
 
 class TraceRef(Base):
-    """Sha256 of one scenario trace. The trace body stays out of this table."""
+    """Sha256 of one scenario trace, plus the trace JSON the dashboard reads.
+
+    The signed report keeps the hash only. `body` is the trace itself.
+    """
 
     __tablename__ = "trace_ref"
     __table_args__ = (UniqueConstraint("run_id", "scenario_id", name="uq_trace_ref_run_scenario"),)
@@ -62,4 +65,5 @@ class TraceRef(Base):
     run_id: Mapped[str] = mapped_column(ForeignKey("audit_run.id"), nullable=False, index=True)
     scenario_id: Mapped[str] = mapped_column(String(256), nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
     run: Mapped[AuditRun] = relationship(back_populates="trace_refs")

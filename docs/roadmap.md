@@ -2,7 +2,7 @@
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
-> **Status:** Phases 0–7 are in this repository. Phases 8–10 are open.
+> **Status:** Phases 0–8 are in this repository. A public demo link is not published. Phases 9–10 are open.
 
 Point Agentshield at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
@@ -191,11 +191,12 @@ agentshield/
 - **DoD:** submit → poll → fetch signed report over HTTP.
 
 ### Phase 8 — Dashboard
-- [ ] React scaffold; typed API client from OpenAPI export.
-- [ ] Runs list; run detail with **scenario heatmap** (suite × outcome).
-- [ ] **Trace timeline** component (llm/tool spans, expandable).
-- [ ] **Version diff** view: regression across agent/model versions (the headline feature).
-- [ ] Loading/empty/error states; deploy with a public demo link.
+- [x] React scaffold; typed API client from OpenAPI export.
+- [x] Runs list; run detail with **scenario heatmap** (suite × outcome).
+- [x] **Trace timeline** component (llm/tool spans, expandable).
+- [x] **Version diff** view: regression across agent/model versions (the headline feature).
+- [x] Loading, empty, and error states.
+- [ ] Public demo link.
 - **DoD:** a reviewer explores a full audit visually without the CLI.
 
 ### Phase 9 — GitHub Action (deploy gate)

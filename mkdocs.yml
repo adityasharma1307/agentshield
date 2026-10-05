@@ -24,6 +24,7 @@ nav:
   - Writing scenarios: writing-scenarios.md
   - Policy reference: policy-reference.md
   - Service: service.md
+  - Dashboard: dashboard.md
   - Threat model: threat-model.md
   - Roadmap: roadmap.md
 markdown_extensions:

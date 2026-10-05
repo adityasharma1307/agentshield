@@ -21,9 +21,9 @@ The sandbox is what runs that step loop and executes tools:
 
 ## Next
 
-**Dashboard.** A reviewer opens a run, reads the trace, and compares two runs.
+**Deploy gate.** The careful example should pass a GitHub Action, and the leaky example should fail it.
 
-The [roadmap](docs/roadmap.md) then builds the deploy gate.
+The dashboard in `frontend/` can already review a run. See [docs/dashboard.md](docs/dashboard.md).
 
 ## Install
 
@@ -49,6 +49,7 @@ The OpenAI, LangGraph, OpenTelemetry, and service clients are optional: `.[opena
 - [Sandbox](docs/sandbox.md)
 - [Tracing](docs/tracing.md)
 - [Service](docs/service.md)
+- [Dashboard](docs/dashboard.md)
 - [Threat model](docs/threat-model.md)
 - [Writing scenarios](docs/writing-scenarios.md)
 - [Policy reference](docs/policy-reference.md)

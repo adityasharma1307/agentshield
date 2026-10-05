@@ -30,6 +30,8 @@ def test_sqlite_upgrade_creates_the_service_tables(tmp_path: Path) -> None:
     assert {"audit_run", "scenario_result", "trace_ref", "alembic_version"} <= names
     columns = {column["name"] for column in inspect(engine).get_columns("audit_run")}
     assert columns == _AUDIT_COLUMNS
+    trace_columns = {column["name"] for column in inspect(engine).get_columns("trace_ref")}
+    assert "body" in trace_columns
     engine.dispose()
 
 

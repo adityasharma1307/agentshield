@@ -182,6 +182,7 @@ async def _build(
                 run_id=run_id,
                 scenario_id=scenario.id,
                 sha256=trace_ref(scenario.id, executed.trace).sha256,
+                body=executed.trace.model_dump_json(),
             )
         )
     body = ReportBody(

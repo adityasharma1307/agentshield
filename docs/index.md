@@ -15,5 +15,6 @@ Agentshield audits tool-using LLM agents. A finished install will run an agent i
 - [Writing scenarios](writing-scenarios.md) — the scenario shape the runner loads.
 - [Policy reference](policy-reference.md) — the rule kinds the scorer will evaluate.
 - [Service](service.md) — enqueue a run, poll it, and download the signed report.
+- [Dashboard](dashboard.md) — review a run in the browser.
 - [Threat model](threat-model.md) — what the sandbox is intended to contain, and what it contains today.
 - [Roadmap](roadmap.md) — phased task list from this foundation through the public release.

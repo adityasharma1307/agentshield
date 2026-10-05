@@ -1,0 +1,195 @@
+:root {
+  color: #1b1916;
+  background: #f6f3ec;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: #1f4e3d;
+}
+
+a:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1f4e3d;
+  outline-offset: 2px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #d9d2c5;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+main {
+  padding: 1rem;
+  max-width: 72rem;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fffdf8;
+}
+
+th,
+td {
+  border: 1px solid #d9d2c5;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.muted,
+.legend {
+  color: #5c564c;
+}
+
+.id {
+  font-family: Consolas, "Courier New", monospace;
+  word-break: break-all;
+}
+
+.status,
+.outcome {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.status.queued,
+.status.running {
+  background: #ece7dc;
+}
+
+.status.succeeded,
+.outcome.pass,
+.cell.pass {
+  background: #e4f0e4;
+  color: #14532d;
+}
+
+.status.failed,
+.outcome.fail,
+.cell.fail {
+  background: #f8e4e1;
+  color: #8f2d24;
+}
+
+.heatmap th {
+  font-size: 0.85rem;
+}
+
+.empty-cell {
+  background: #f3efe6;
+}
+
+.state {
+  padding: 0.75rem 0;
+}
+
+.error {
+  color: #8f2d24;
+  font-weight: 650;
+}
+
+.compare {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+select,
+button {
+  font: inherit;
+  padding: 0.4rem 0.55rem;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timeline li {
+  border: 1px solid #d9d2c5;
+  background: #fffdf8;
+  padding: 0.75rem;
+}
+
+.event-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.seq {
+  font-family: Consolas, "Courier New", monospace;
+  color: #5c564c;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0.4rem 0;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.picker {
+  max-width: 24rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  main,
+  .top {
+    padding: 0.75rem;
+  }
+
+  .compare {
+    grid-template-columns: 1fr;
+  }
+}

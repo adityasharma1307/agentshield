@@ -7,7 +7,6 @@ stores a queued row and enqueues the id. It does not run the suite.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import uuid
 from dataclasses import dataclass
@@ -22,10 +21,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from agentshield import __version__
 from agentshield.config import Settings, load_settings
-from agentshield.report.schema import scenario_pack_hash
+from agentshield.report.schema import SignedReport, scenario_pack_hash
 from agentshield.service.db import make_engine, make_session_factory
-from agentshield.service.models import AuditRun, ScenarioResult
+from agentshield.service.models import AuditRun, ScenarioResult, TraceRef
 from agentshield.service.queue import ArqQueue, MemoryQueue, RunQueue
+from agentshield.trace import AgentTrace
 
 _SEVERITY_RANK = {"none": -1, "low": 0, "medium": 1, "high": 2, "critical": 3}
 RunStatusName = Literal["queued", "running", "succeeded", "failed"]
@@ -83,6 +83,44 @@ class DiffBody(BaseModel):
     scenarios: list[ScenarioDiff]
 
 
+class RunSummary(BaseModel):
+    """One row on the runs list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    status: RunStatusName
+    agent: str
+    created_at: str
+    passed_count: int
+    scenario_count: int
+
+
+class RunList(BaseModel):
+    """Runs newest first."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    runs: list[RunSummary]
+
+
+class ScenarioTrace(BaseModel):
+    """The stored trace for one scenario."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scenario_id: str
+    trace: AgentTrace
+
+
+class RunTraces(BaseModel):
+    """Traces for a finished run, in scenario id order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scenarios: list[ScenarioTrace]
+
+
 def create_app(
     settings: Settings | None = None,
     *,
@@ -113,6 +151,38 @@ def create_app(
     @app.get("/version")
     def version() -> dict[str, str]:
         return {"version": __version__}
+
+    @app.get("/runs")
+    def list_runs(request: Request) -> RunList:
+        factory = _factory(request)
+        with factory() as session:
+            stored = session.scalars(select(AuditRun).order_by(AuditRun.created_at.desc())).all()
+            summaries: list[RunSummary] = []
+            for run in stored:
+                results = session.scalars(
+                    select(ScenarioResult).where(ScenarioResult.run_id == run.id)
+                ).all()
+                record = _RunRecord(
+                    id=run.id,
+                    status=run.status,
+                    agent=run.agent,
+                    suite_hash=run.suite_hash,
+                    policy_hash=run.policy_hash,
+                    created_at=run.created_at,
+                    error=run.error,
+                    report_json=run.report_json,
+                )
+                summaries.append(
+                    RunSummary(
+                        id=record.id,
+                        status=_status(record.status),
+                        agent=record.agent,
+                        created_at=_created_at(record),
+                        passed_count=sum(1 for row in results if row.passed),
+                        scenario_count=len(results),
+                    )
+                )
+        return RunList(runs=summaries)
 
     @app.post("/runs", status_code=202)
     async def create_run(body: RunCreate, request: Request) -> RunAccepted:
@@ -151,17 +221,37 @@ def create_app(
         )
 
     @app.get("/runs/{run_id}/report")
-    def read_report(run_id: str, request: Request) -> dict[str, object]:
+    def read_report(run_id: str, request: Request) -> SignedReport:
         run = _require_run(request, run_id)
         if run.status != "succeeded" or not run.report_json:
             raise HTTPException(
                 status_code=409,
                 detail="report is available when the run has succeeded",
             )
-        parsed = json.loads(run.report_json)
-        if not isinstance(parsed, dict):
-            raise HTTPException(status_code=409, detail="stored report is not a JSON object")
-        return parsed
+        return SignedReport.model_validate_json(run.report_json)
+
+    @app.get("/runs/{run_id}/traces")
+    def read_traces(run_id: str, request: Request) -> RunTraces:
+        run = _require_run(request, run_id)
+        if run.status != "succeeded":
+            raise HTTPException(
+                status_code=409,
+                detail="traces are available when the run has succeeded",
+            )
+        factory = _factory(request)
+        with factory() as session:
+            stored = session.scalars(
+                select(TraceRef).where(TraceRef.run_id == run_id).order_by(TraceRef.scenario_id)
+            ).all()
+            scenarios = [
+                ScenarioTrace(
+                    scenario_id=row.scenario_id,
+                    trace=AgentTrace.model_validate_json(row.body),
+                )
+                for row in stored
+                if row.body
+            ]
+        return RunTraces(scenarios=scenarios)
 
     @app.get("/runs/{run_id}/diff/{other_id}")
     def diff_runs(run_id: str, other_id: str, request: Request) -> DiffBody:

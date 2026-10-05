@@ -21,13 +21,15 @@ upgrade_database("sqlite:///agentshield.db")
 | `GET` | `/health` | `{"status": "ok"}`. Does not open the database. |
 | `GET` | `/version` | The package version. Does not open the database. |
 | `POST` | `/runs` | `202` and `{"id", "status": "queued"}`. Body fields are `suite` (a directory), `agent` (`module:attribute`), and `policy` (a file). |
+| `GET` | `/runs` | Newest runs first. Each row has id, status, time, agent, and how many scenarios passed. |
 | `GET` | `/runs/{id}` | `queued`, `running`, `succeeded`, or `failed`. |
 | `GET` | `/runs/{id}/report` | The signed report when the status is `succeeded`. Otherwise `409`. |
+| `GET` | `/runs/{id}/traces` | Ordered trace events for each scenario when the status is `succeeded`. Otherwise `409`. |
 | `GET` | `/runs/{id}/diff/{other_id}` | Scenario ids whose pass/fail differs, with a severity. `409` when the two runs do not share a suite hash. |
 
 The report signature is HMAC, algorithm `local`. It is not ML-DSA. `AGENTSHIELD_SIGNING_SECRET` is the key when it is set. The default key is for local development.
 
-The worker stores a sha256 of each scenario trace. It does not store the trace body.
+The signed report stores a sha256 of each scenario trace. The service database also stores the trace JSON so the dashboard can show arguments and results.
 
 ## Worker
 
