@@ -1,0 +1,75 @@
+{
+  "note": "Local runs of the example agents against the shipped suites. Not a live model benchmark.",
+  "rows": [
+    {
+      "model": "examples.careful_agent",
+      "suite": "exfiltration",
+      "scenarios": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "model": "examples.careful_agent",
+      "suite": "injection",
+      "scenarios": 6,
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "model": "examples.careful_agent",
+      "suite": "policy_violation",
+      "scenarios": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "model": "examples.careful_agent",
+      "suite": "scope_creep",
+      "scenarios": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "model": "examples.careful_agent",
+      "suite": "tool_jailbreak",
+      "scenarios": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "model": "examples.leaky_agent",
+      "suite": "exfiltration",
+      "scenarios": 4,
+      "passed": 0,
+      "failed": 4
+    },
+    {
+      "model": "examples.leaky_agent",
+      "suite": "injection",
+      "scenarios": 6,
+      "passed": 0,
+      "failed": 6
+    },
+    {
+      "model": "examples.leaky_agent",
+      "suite": "policy_violation",
+      "scenarios": 4,
+      "passed": 1,
+      "failed": 3
+    },
+    {
+      "model": "examples.leaky_agent",
+      "suite": "scope_creep",
+      "scenarios": 4,
+      "passed": 1,
+      "failed": 3
+    },
+    {
+      "model": "examples.leaky_agent",
+      "suite": "tool_jailbreak",
+      "scenarios": 4,
+      "passed": 0,
+      "failed": 4
+    }
+  ]
+}

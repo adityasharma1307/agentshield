@@ -1,6 +1,41 @@
-# Jaeger is optional. `docker compose up` does not start it.
-# `docker compose --profile debug up` does.
+# `docker compose up` starts the service, Postgres, and Redis.
+# Jaeger stays on the debug profile: `docker compose --profile debug up`.
 services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: agentshield
+      POSTGRES_PASSWORD: agentshield
+      POSTGRES_DB: agentshield
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AGENTSHIELD_DATABASE_URL: postgresql+psycopg://agentshield:agentshield@postgres:5432/agentshield
+      AGENTSHIELD_REDIS_URL: redis://redis:6379/0
+    entrypoint: ["python", "-m", "uvicorn"]
+    command:
+      - agentshield.service.app:create_app
+      - --factory
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    ports:
+      - "8000:8000"
+
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     profiles:

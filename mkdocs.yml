@@ -26,6 +26,7 @@ nav:
   - Service: service.md
   - Dashboard: dashboard.md
   - Threat model: threat-model.md
+  - Results: results.md
   - Roadmap: roadmap.md
 markdown_extensions:
   - admonition

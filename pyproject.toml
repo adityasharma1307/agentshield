@@ -59,6 +59,9 @@ pq = [
 qknot = [
     "qknot>=0.1.1",
 ]
+bench = [
+    "litellm>=1.50",
+]
 service = [
     "fastapi>=0.115",
     "sqlalchemy>=2",
@@ -119,6 +122,8 @@ module = [
     "arq.*",
     "alembic",
     "alembic.*",
+    "litellm",
+    "litellm.*",
 ]
 ignore_missing_imports = true
 

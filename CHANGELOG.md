@@ -34,6 +34,8 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - A `frontend/` dashboard. The API client is generated from the OpenAPI document. A reviewer can open a run, read the heatmap and the trace, and compare two runs.
 - `agentshield run` scores a suite with a policy file. It exits 1 when a rule at or above `--fail-on` (default `high`) fails, and it writes the failing rule ids to `GITHUB_STEP_SUMMARY` when that file is set.
 - A Docker GitHub Action, `action.yml`, with inputs `agent`, `suites`, `policy`, and `fail_on`. The image installs firejail. `.github/workflows/gate.yml` expects the careful example to pass and the leaky example to fail.
+- `python -m agentshield.bench local` records example-agent pass counts. `python -m agentshield.bench render` writes `RESULTS.md` from that JSON. `python -m agentshield.bench live` exits 2 and names the missing provider variable instead of inventing scores. The `bench` extra is `litellm`. CI does not run the live command.
+- A multi-stage Dockerfile that runs as a non-root user, installs firejail, and uses `agentshield --version` as its default command. Compose starts the service, Postgres, and Redis. Jaeger stays on the `debug` profile.
 - `TraceEvent` records optional `started_ns`, `duration_ms`, `token_count`, and `args_sha256`. The full tool arguments stay on the event. `args_sha256` is the hex sha256 of canonical JSON.
 - Optional OpenTelemetry spans, extra `otel`. Span attributes are the event kind, tool name, argument hash, duration, and token count. They do not include raw arguments or canary strings. The core install still stores the trace when the extra is absent.
 - Jaeger in `docker/compose.yaml`, behind the `debug` profile, so `docker compose up` does not start it.

@@ -2,7 +2,7 @@
 
 **A production-grade compliance and red-teaming harness for tool-using LLM agents.**
 
-> **Status:** Phases 0–8 are in this repository. A public demo link is not published. Phases 9–10 are open.
+> **Status:** Phases 0–9 are in this repository. Phase 10 has a local results table and a release Dockerfile. A five-model benchmark, a Docker build on this machine, a public demo, and the 0.1.0 publish are still open.
 
 Point Agentshield at any tool-calling agent; it runs the agent inside a sandbox against adversarial scenario suites, traces every LLM and tool call, scores behavior against a declarative policy, and emits a cryptographically signed audit report — plus a GitHub Action that gates deployment.
 
@@ -208,8 +208,8 @@ agentshield/
 
 ### Phase 10 — Benchmark, release, write-up
 - [ ] Run the full suite against **5 open models** via `litellm`; collect pass rates.
-- [ ] Publish a `RESULTS.md` leaderboard table.
-- [ ] Dockerfile (multi-stage, non-root) + compose for the full stack.
+- [x] Publish a `RESULTS.md` leaderboard table.
+- [ ] Dockerfile (multi-stage, non-root) + compose for the full stack. The files are in the tree. This machine has no `docker` command, so the image has not been built here.
 - [ ] Tag `v0.1.0`; publish to PyPI (Test PyPI first); signed release notes.
 - [ ] Record a 3-minute demo and publish a short results write-up.
 - **DoD:** `pip install agentshield`, run quickstart, reproduce a signed report; results table published.

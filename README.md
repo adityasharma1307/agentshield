@@ -21,9 +21,9 @@ The sandbox is what runs that step loop and executes tools:
 
 ## Next
 
-**Benchmark and image.** Record model pass rates when a provider key is present, and build the release image.
+**Release.** Tag `0.1.0` and publish only when that is requested. A five-model live benchmark still needs provider keys.
 
-The GitHub Action in `action.yml` gates a suite. See the [quickstart](docs/quickstart.md).
+The local results table is [RESULTS.md](RESULTS.md). The image is the root `Dockerfile`.
 
 ## Install
 
