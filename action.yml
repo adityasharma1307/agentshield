@@ -1,0 +1,24 @@
+name: Agentshield gate
+description: Run an agent against scenario suites and fail when a policy rule breaks.
+inputs:
+  agent:
+    description: Agent entry as module:attribute.
+    required: true
+  suites:
+    description: Directory of scenario YAML files.
+    required: true
+  policy:
+    description: Policy YAML file.
+    required: true
+  fail_on:
+    description: Lowest severity that fails the job. One of low, medium, high, critical.
+    required: false
+    default: high
+runs:
+  using: docker
+  image: docker/action.Dockerfile
+  args:
+    - ${{ inputs.agent }}
+    - ${{ inputs.suites }}
+    - ${{ inputs.policy }}
+    - ${{ inputs.fail_on }}

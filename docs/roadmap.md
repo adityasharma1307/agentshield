@@ -200,10 +200,10 @@ agentshield/
 - **DoD:** a reviewer explores a full audit visually without the CLI.
 
 ### Phase 9 — GitHub Action (deploy gate)
-- [ ] `action.yml` Docker action wrapping the CLI; inputs: agent entrypoint, suites, policy, thresholds.
-- [ ] Non-zero exit on regression/threshold breach; markdown step-summary of failures.
-- [ ] Self-test workflow running the Action against `examples/` agent.
-- [ ] `docs/quickstart.md` copy-paste snippet.
+- [x] `action.yml` Docker action wrapping the CLI; inputs: agent entrypoint, suites, policy, thresholds.
+- [x] Non-zero exit on regression/threshold breach; markdown step-summary of failures.
+- [x] Self-test workflow running the Action against `examples/` agent.
+- [x] `docs/quickstart.md` copy-paste snippet.
 - **DoD:** a deliberately-weakened example agent fails the gate in CI.
 
 ### Phase 10 — Benchmark, release, write-up

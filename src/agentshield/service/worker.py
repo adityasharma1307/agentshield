@@ -7,7 +7,6 @@ request has returned, using a queue that only stored the run id.
 from __future__ import annotations
 
 import hashlib
-import importlib
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,7 +15,7 @@ from typing import Any, ClassVar
 from arq.connections import RedisSettings
 from sqlalchemy.orm import Session, sessionmaker
 
-from agentshield.adapters.base import AgentUnderTest
+from agentshield.audit import load_agent
 from agentshield.config import Settings, load_settings
 from agentshield.report.schema import (
     FailingRule,
@@ -94,18 +93,6 @@ class WorkerSettings:
     functions: ClassVar[list[Any]] = [execute_run]
     on_startup = startup
     redis_settings: ClassVar[RedisSettings] = RedisSettings.from_dsn(Settings().redis_url)
-
-
-def load_agent(entry: str) -> AgentUnderTest:
-    """Import `module:attribute` and require an `AgentUnderTest`."""
-    module_name, separator, attr = entry.partition(":")
-    if separator != ":" or not module_name or not attr or ":" in attr:
-        raise ValueError(f"agent entry must be module:attribute, got {entry!r}")
-    module = importlib.import_module(module_name)
-    agent = getattr(module, attr, None)
-    if not isinstance(agent, AgentUnderTest):
-        raise TypeError(f"{entry} is not an AgentUnderTest")
-    return agent
 
 
 async def _build(

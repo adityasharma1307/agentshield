@@ -17,13 +17,13 @@ The sandbox is what runs that step loop and executes tools:
 - An executor that dispatches every tool call through the registry only, and stops on a final answer, a step limit, a time limit, or an agent crash
 - A reported process boundary (`inprocess` by default; `subprocess`, hardened with `firejail --net=none` when it is installed) — see the [threat model](docs/threat-model.md) for exactly which guarantees hold today
 
-`agentshield scenarios` lists the 22 shipped scenarios (id, suite, and expectation names) and does not run them. The runner scores each expectation with the same rules as a policy file. Every run stores an ordered trace, including full tool arguments. Optional OpenTelemetry spans carry the argument hash, not the raw arguments. A trace plus a policy file produces one row per rule. CI replays those agents, fixtures, and recorded judge votes. It does not call a model provider. `agentshield verify` checks a signature over the report's canonical JSON. The default signer in tests is local, not ML-DSA. The optional `qknot` extra signs with Ed25519 and ML-DSA-87; that check uses the public keys inside the bundle. The `service` extra accepts `POST /runs` and returns the signed report when a worker finishes. There is still no `agentshield run` command.
+`agentshield scenarios` lists the 22 shipped scenarios (id, suite, and expectation names) and does not run them. The runner scores each expectation with the same rules as a policy file. Every run stores an ordered trace, including full tool arguments. Optional OpenTelemetry spans carry the argument hash, not the raw arguments. A trace plus a policy file produces one row per rule. CI replays those agents, fixtures, and recorded judge votes. It does not call a model provider. `agentshield verify` checks a signature over the report's canonical JSON. The default signer in tests is local, not ML-DSA. The optional `qknot` extra signs with Ed25519 and ML-DSA-87; that check uses the public keys inside the bundle. The `service` extra accepts `POST /runs` and returns the signed report when a worker finishes. `agentshield run` scores a suite and exits 1 when a rule at or above the chosen severity fails.
 
 ## Next
 
-**Deploy gate.** The careful example should pass a GitHub Action, and the leaky example should fail it.
+**Benchmark and image.** Record model pass rates when a provider key is present, and build the release image.
 
-The dashboard in `frontend/` can already review a run. See [docs/dashboard.md](docs/dashboard.md).
+The GitHub Action in `action.yml` gates a suite. See the [quickstart](docs/quickstart.md).
 
 ## Install
 

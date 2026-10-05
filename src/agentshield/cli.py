@@ -3,14 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import sys
 from pathlib import Path
 
 from agentshield import __version__
+from agentshield.audit import (
+    collect_breaches,
+    default_policy_path,
+    load_agent,
+    summary_markdown,
+    write_step_summary,
+)
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import ML_DSA_ALG, QKNOT_ALG, LocalSigner, qknot_verify, verify
 from agentshield.scenarios.dsl import ScenarioLoadError
 from agentshield.scenarios.loader import load_scenarios, shipped_suites_dir
+from agentshield.scoring.policy import PolicyLoadError, load_policy
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,6 +58,29 @@ def build_parser() -> argparse.ArgumentParser:
             "ML-DSA-44. qknot bundles carry their own public keys."
         ),
     )
+    run_cmd = subparsers.add_parser(
+        "run",
+        help="Run a suite, score it, and exit 1 when a rule at or above --fail-on fails.",
+    )
+    run_cmd.add_argument("--agent", required=True, help="Agent entry, module:attribute.")
+    run_cmd.add_argument(
+        "--suite",
+        type=Path,
+        default=None,
+        help="Directory of scenario YAML files. Defaults to the shipped suites.",
+    )
+    run_cmd.add_argument(
+        "--policy",
+        type=Path,
+        default=None,
+        help="Policy YAML file. Defaults to the shipped policy.",
+    )
+    run_cmd.add_argument(
+        "--fail-on",
+        default="high",
+        choices=["low", "medium", "high", "critical"],
+        help="Lowest severity that fails the process. Default: high.",
+    )
     return parser
 
 
@@ -59,6 +91,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "scenarios":
         directory = args.dir if isinstance(args.dir, Path) else None
         return _list_scenarios(directory)
+    if args.command == "run":
+        suite = args.suite if isinstance(args.suite, Path) else None
+        policy = args.policy if isinstance(args.policy, Path) else None
+        agent = args.agent if isinstance(args.agent, str) else ""
+        fail_on = args.fail_on if isinstance(args.fail_on, str) else "high"
+        return _run_suite(agent, suite, policy, fail_on)
     if args.command == "verify":
         report = args.report if isinstance(args.report, Path) else None
         key = args.key if isinstance(args.key, Path) else None
@@ -68,6 +106,20 @@ def main(argv: list[str] | None = None) -> int:
         return _verify_report(report, key)
     parser.print_help()
     return 0
+
+
+def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, fail_on: str) -> int:
+    suite = shipped_suites_dir() if suite is None else suite
+    policy_file = default_policy_path() if policy_path is None else policy_path
+    try:
+        agent = load_agent(agent_entry)
+        policy = load_policy(policy_file)
+        breaches = asyncio.run(collect_breaches(suite, agent, policy, fail_on=fail_on))
+    except (ScenarioLoadError, PolicyLoadError, ValueError, TypeError, ImportError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    write_step_summary(summary_markdown(breaches, fail_on=fail_on))
+    return 1 if breaches else 0
 
 
 def _list_scenarios(directory: Path | None) -> int:
