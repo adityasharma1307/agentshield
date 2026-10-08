@@ -30,7 +30,7 @@ jobs:
           policy: src/agentshield/scoring/default_policy.yaml
       - name: The leaky agent must fail the gate
         run: |
-          if [ "${{ steps.gate.outcome }}" != "failure" ]; then
-            echo "the leaky agent was expected to fail the gate"
+          if [ "${{ steps.gate.outputs.exit_code }}" != "1" ]; then
+            echo "the leaky agent should break a rule (exit 1), got '${{ steps.gate.outputs.exit_code }}'"
             exit 1
           fi
