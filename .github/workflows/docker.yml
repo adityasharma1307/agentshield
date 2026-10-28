@@ -1,0 +1,72 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: release
+            file: Dockerfile
+          - name: action
+            file: action.Dockerfile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Same context the Gate action uses: the repo root.
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          tags: agentshield-${{ matrix.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max,ignore-error=true
+
+      - name: Release image runs as non-root and reports its version
+        if: matrix.name == 'release'
+        run: |
+          docker run --rm agentshield-release:ci --version
+          uid="$(docker run --rm --entrypoint id agentshield-release:ci -u)"
+          test "$uid" != "0" || { echo "release image runs as root"; exit 1; }
+
+      - name: Action image passes the careful agent and fails the leaky one
+        if: matrix.name == 'action'
+        run: |
+          run_gate() {
+            docker run --rm --network none \
+              -e GITHUB_WORKSPACE=/github/workspace \
+              -v "$PWD":/github/workspace:ro \
+              agentshield-action:ci "examples.$1.agent:agent" \
+              src/agentshield/scenarios/suites \
+              src/agentshield/scoring/default_policy.yaml high
+          }
+          run_gate careful_agent
+          set +e; run_gate leaky_agent; rc=$?; set -e
+          test "$rc" = "1" || { echo "leaky agent: expected exit 1, got $rc"; exit 1; }
+
+      - name: No secrets or VCS data baked into the image
+        run: |
+          docker run --rm --entrypoint sh agentshield-${{ matrix.name }}:ci -c '
+            found=$(find / -xdev \( -name ".env" -o -name ".env.*" -o -name "id_rsa*" \
+              -o -name "id_ed25519*" -o -name "*.p12" -o -name ".git" \) \
+              -not -path "/proc/*" 2>/dev/null)
+            if [ -n "$found" ]; then echo "unexpected files in image:"; echo "$found"; exit 1; fi'

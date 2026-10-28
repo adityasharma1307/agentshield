@@ -14,9 +14,12 @@ inputs:
     description: Lowest severity that fails the job. One of low, medium, high, critical.
     required: false
     default: high
+outputs:
+  exit_code:
+    description: Exit code from agentshield run. 0 passed, 1 a rule broke, 2 the run itself errored.
 runs:
   using: docker
-  image: docker/action.Dockerfile
+  image: action.Dockerfile
   args:
     - ${{ inputs.agent }}
     - ${{ inputs.suites }}
