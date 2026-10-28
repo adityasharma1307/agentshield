@@ -1,0 +1,19 @@
+# gitleaks configuration. CI runs `gitleaks git . --config .gitleaks.toml --redact`
+# over the full history (.github/workflows/gitleaks.yml).
+[extend]
+useDefault = true
+
+# Historical false positive. Commit 6902a90 added one synthetic canary string
+# to adapter tests, which check that the string does not leak into errors. It
+# was never a credential, and the tests now use `test-key-not-real`. The
+# allowlist matches only that commit, those two paths, and that one rule, so a
+# real secret in any other commit or file still fails the scan.
+[[allowlists]]
+description = "Synthetic canary in adapter tests, replaced with test-key-not-real"
+targetRules = ["generic-api-key"]
+condition = "AND"
+commits = ["6902a90eea00389912fed2ba54a138ef7f936ed0"]
+paths = [
+  '''^tests/test_http_adapter\.py$''',
+  '''^tests/test_langgraph_adapter\.py$''',
+]
