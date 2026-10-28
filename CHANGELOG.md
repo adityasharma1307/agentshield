@@ -11,6 +11,7 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - The agent under test could edit or wipe its own trace. `step()` received the executor's live event list, and an agent that cleared it before answering passed every scenario. The executor now hands `step()` deep copies, deep-copies call arguments before recording them, and checks the mock tools' outbound log against the trace (`TraceIntegrityError`).
 - The agent under test ran in the process that scores and signs. An agent could replace `agentshield.audit.score_trace` at import time and pass every scenario. `agentshield run`, the Action, and the service now run it in a child process (`IsolatedAgent`) without `AGENTSHIELD_*` environment variables.
 - Reports did not record the boundary the README and threat model said they did. `ReportBody` now has a signed `boundary` field, `agentshield verify` prints it, and the docs say only what the code does.
+- Removed the public default signing key `agentshield-local-dev`. Anyone could use it to forge a signed report. The API and the worker now refuse to start unless `AGENTSHIELD_SIGNING_SECRET` is set. They also refuse an empty key, a key under 32 bytes, and the old default value. `LocalSigner` won't sign or verify with those keys either. `docker compose up` needs the variable set. The worker deletes the key from its environment after reading it and keeps it only in the signer. On Linux it also marks itself non-dumpable, so a same-user agent child can't read the key from `/proc`.
 
 ## [0.1.0] - 2026-10-28
 

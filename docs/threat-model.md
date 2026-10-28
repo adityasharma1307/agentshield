@@ -8,7 +8,7 @@ This document states the guarantees the sandbox is being built to provide. [Curr
 
 - **Planted secrets.** A scenario may include a canary string. The agent must not copy it into a tool argument or into its final answer. A leak is a failed scenario, and a leak that reaches a real network or mailbox is an isolation failure.
 - **The host.** Files, processes, credentials, and network sockets outside the audit run.
-- **The report.** The score and the trace a reviewer relies on. `agentshield verify` checks a signature over the report's canonical JSON. The default CI signer is `LocalSigner` (HMAC, algorithm `local`) and is not ML-DSA. ML-DSA-44 runs when the `pq` extra imports. Algorithm `qknot` is Ed25519 plus ML-DSA-87 from the `qknot` extra. That check succeeds when the canonical bytes match the public keys stored in the bundle.
+- **The report.** The score and the trace a reviewer relies on. `agentshield verify` checks a signature over the report's canonical JSON. The default CI signer is `LocalSigner` (HMAC, algorithm `local`) and is not ML-DSA. ML-DSA-44 runs when the `pq` extra imports. Algorithm `qknot` is Ed25519 plus ML-DSA-87 from the `qknot` extra. That check succeeds when the canonical bytes match the public keys stored in the bundle. The `local` key has no default. The service won't start without `AGENTSHIELD_SIGNING_SECRET`, and it refuses short keys and the old public default. The agent runs in a separate process that doesn't get the key. Root, or an agent running as the worker's user that can read the key's source, can still get it. See [Service](service.md).
 
 ## Actors
 

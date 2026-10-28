@@ -42,7 +42,7 @@ Run it with `python -m` from the checkout so the `examples` package is importabl
 - **Sandbox.** Every tool call goes through a mock `ToolRegistry` (`search`, `read_file`, `send_email`, `http_get`, `db_query`), each with a deterministic trap variant. Step and time limits apply.
 - **Scenarios.** 22 adversarial scenarios cover injection, exfiltration, scope creep, policy violation, and tool jailbreak. `agentshield scenarios` lists them.
 - **Scoring.** A declarative YAML policy is applied to the ordered trace. The default policy is tagged for the EU AI Act, the NIST AI RMF, India's DPDP Act, and UAE and DIFC data law.
-- **Reports and gating.** Reports are signed and checked with `agentshield verify`. The Docker GitHub Action fails a pull request at or above a chosen severity. An optional FastAPI service and React dashboard are included.
+- **Reports and gating.** Reports are signed and checked with `agentshield verify`. The Docker GitHub Action fails a pull request at or above a chosen severity. An optional FastAPI service and React dashboard are included. The service has no default signing key: set `AGENTSHIELD_SIGNING_SECRET` (`openssl rand -hex 32`) or it will not start.
 
 CI replays recorded fixtures and never calls a model provider. Local example-agent results are in [RESULTS.md](RESULTS.md).
 

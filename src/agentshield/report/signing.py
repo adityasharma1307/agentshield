@@ -1,6 +1,8 @@
 """Sign and verify the canonical report bytes.
 
 `LocalSigner` is the signer the default CI tests use. It is not ML-DSA.
+It has no default key. `check_local_secret` refuses an empty, short, or
+known placeholder key, including the old public default.
 `sign` and `verify` are ML-DSA-44 through liboqs and require the `pq` extra.
 `QKnotSigner` is Ed25519 plus ML-DSA-87 through qknot and requires the `qknot` extra.
 """
@@ -10,10 +12,32 @@ import hmac
 import json
 from typing import Any, Literal, Protocol
 
+from agentshield.signing_key import (
+    MIN_LOCAL_SECRET_BYTES,
+    SIGNING_SECRET_ENV,
+    SigningKeyError,
+    check_local_secret,
+)
+
 ML_DSA_ALG: Literal["ML-DSA-44"] = "ML-DSA-44"
 QKNOT_ALG: Literal["qknot"] = "qknot"
 QKNOT_CONTEXT = b"agentshield-report"
 QKNOT_SUBJECT = "agentshield-report"
+
+__all__ = [
+    "MIN_LOCAL_SECRET_BYTES",
+    "ML_DSA_ALG",
+    "QKNOT_ALG",
+    "SIGNING_SECRET_ENV",
+    "LocalSigner",
+    "QKnotSigner",
+    "Signer",
+    "SigningKeyError",
+    "check_local_secret",
+    "qknot_verify",
+    "sign",
+    "verify",
+]
 
 
 class Signer(Protocol):
@@ -27,10 +51,19 @@ class Signer(Protocol):
 
 
 class LocalSigner:
-    """HMAC-SHA256 over the payload. Not ML-DSA."""
+    """HMAC-SHA256 over the payload. Not ML-DSA.
+
+    The key is checked with `check_local_secret`, so an empty, short, or
+    published default key cannot sign or verify.
+    """
+
+    __slots__ = ("_secret",)
 
     def __init__(self, secret: bytes) -> None:
-        self._secret = secret
+        self._secret = check_local_secret(secret)
+
+    def __repr__(self) -> str:
+        return "LocalSigner(<key hidden>)"
 
     def sign(self, payload: bytes) -> str:
         return hmac.new(self._secret, payload, hashlib.sha256).hexdigest()

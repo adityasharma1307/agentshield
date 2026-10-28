@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from agentshield import __version__
-from agentshield.config import Settings, load_settings
+from agentshield.config import Settings, load_settings, require_signing_secret
 from agentshield.report.schema import SignedReport, scenario_pack_hash
 from agentshield.service.db import make_engine, make_session_factory
 from agentshield.service.models import AuditRun, ScenarioResult, TraceRef
@@ -132,8 +132,16 @@ def create_app(
 
     The default queue records ids in memory. Pass `ArqQueue` to publish them
     to Redis for `arq agentshield.service.worker.WorkerSettings`.
+
+    With `database=True` (the default), raises `SigningKeyError` when
+    `AGENTSHIELD_SIGNING_SECRET` is unset, short, or a known default.
     """
     resolved = settings if settings is not None else load_settings()
+    if database:
+        # Refuse to start without a strong signing key. There is no default.
+        require_signing_secret(resolved)
+    # The API never signs, so it keeps no copy of the key.
+    resolved = resolved.without_signing_secret()
     if session_factory is None and database:
         session_factory = make_session_factory(make_engine(resolved.database_url))
     if queue is None:

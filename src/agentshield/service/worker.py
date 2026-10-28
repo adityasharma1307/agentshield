@@ -16,7 +16,7 @@ from arq.connections import RedisSettings
 from sqlalchemy.orm import Session, sessionmaker
 
 from agentshield.audit import load_isolated_agent
-from agentshield.config import Settings, load_settings
+from agentshield.config import Settings, load_settings, require_signing_secret
 from agentshield.report.schema import (
     FailingRule,
     ReportBody,
@@ -46,16 +46,16 @@ _ERROR_LIMIT = 2000
 _EXCERPT_LIMIT = 240
 
 
-def scrub_error(exc: BaseException) -> str:
-    """A short error string with environment values removed.
+def scrub_error(exc: BaseException, extra: tuple[str, ...] = ()) -> str:
+    """A short error string with environment values and `extra` removed.
 
     Values shorter than 8 characters are left in place so a value such as a
     single digit cannot blank out the message. Longer values are replaced
-    first.
+    first. Pass the signing key in `extra`: it is no longer in `os.environ`.
     """
     message = f"{type(exc).__name__}: {exc}"
     secrets = sorted(
-        (value for value in os.environ.values() if len(value) >= 8),
+        (value for value in (*os.environ.values(), *extra) if len(value) >= 8),
         key=len,
         reverse=True,
     )
@@ -73,18 +73,34 @@ async def execute_run(ctx: dict[str, Any], run_id: str) -> None:
     """
     factory = _session_factory(ctx)
     settings = _settings(ctx)
+    hidden = _secret_values(settings)
+    try:
+        # Refuse before the agent is imported: no key, no run.
+        signer = _signer(ctx)
+    except Exception as exc:
+        _set_status(factory, run_id, "failed", error=scrub_error(exc, hidden))
+        return
     _set_status(factory, run_id, "running")
     try:
-        signed, rows, refs = await _build(factory, run_id, settings)
+        # The agent never receives a Settings object that holds the key.
+        signed, rows, refs = await _build(
+            factory, run_id, settings.without_signing_secret(), signer
+        )
         _save_success(factory, run_id, signed, rows, refs)
     except Exception as exc:
-        _set_status(factory, run_id, "failed", error=scrub_error(exc))
+        _set_status(factory, run_id, "failed", error=scrub_error(exc, hidden))
 
 
 async def startup(ctx: dict[str, Any]) -> None:
-    """Attach settings and a session factory for an arq worker process."""
+    """Attach a signer, settings, and a session factory for an arq worker.
+
+    Raises `SigningKeyError` when `AGENTSHIELD_SIGNING_SECRET` is unset or weak,
+    so the worker does not start. The key is held only by the signer; the
+    settings kept in `ctx` have none.
+    """
     settings = load_settings()
-    ctx["settings"] = settings
+    ctx["signer"] = LocalSigner(require_signing_secret(settings))
+    ctx["settings"] = settings.without_signing_secret()
     ctx["session_factory"] = make_session_factory(make_engine(settings.database_url))
 
 
@@ -100,6 +116,7 @@ async def _build(
     factory: sessionmaker[Session],
     run_id: str,
     settings: Settings,
+    signer: LocalSigner,
 ) -> tuple[SignedReport, list[ScenarioResult], list[TraceRef]]:
     with factory() as session:
         run = session.get(AuditRun, run_id)
@@ -188,7 +205,7 @@ async def _build(
         trace_refs=[ReportTraceRef(scenario_id=ref.scenario_id, sha256=ref.sha256) for ref in refs],
         boundary=inprocess_boundary(agent_process="subprocess"),
     )
-    signature = LocalSigner(settings.signing_secret.encode("utf-8")).sign(canonical_bytes(body))
+    signature = signer.sign(canonical_bytes(body))
     signed = SignedReport(report=body, signature=signature, algorithm="local")
     return signed, rows, refs
 
@@ -265,6 +282,20 @@ def _session_factory(ctx: dict[str, Any]) -> sessionmaker[Session]:
     if not isinstance(factory, sessionmaker):
         raise RuntimeError("worker context is missing a session factory")
     return factory
+
+
+def _signer(ctx: dict[str, Any]) -> LocalSigner:
+    """The worker's signer. Built from settings only when `startup` did not run."""
+    signer = ctx.get("signer")
+    if isinstance(signer, LocalSigner):
+        return signer
+    return LocalSigner(require_signing_secret(_settings(ctx)))
+
+
+def _secret_values(settings: Settings) -> tuple[str, ...]:
+    if settings.signing_secret is None:
+        return ()
+    return (settings.signing_secret.get_secret_value(),)
 
 
 def _settings(ctx: dict[str, Any]) -> Settings:

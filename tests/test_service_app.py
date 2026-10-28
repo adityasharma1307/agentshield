@@ -1,12 +1,14 @@
 """Health, enqueue, and the worker lifecycle. The request does not run the suite."""
 
 import asyncio
+import secrets
 import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from agentshield import __version__
 from agentshield.config import Settings
@@ -223,10 +225,11 @@ def _client(tmp_path: Path) -> tuple[TestClient, MemoryQueue, dict[str, Any], st
     upgrade_database(url)
     factory = make_session_factory(make_engine(url))
     queue = MemoryQueue()
-    settings = Settings(database_url=url, signing_secret="test-secret-value")
+    secret = secrets.token_hex(32)
+    settings = Settings(database_url=url, signing_secret=SecretStr(secret))
     app = create_app(settings, queue=queue, session_factory=factory)
     ctx: dict[str, Any] = {"settings": settings, "session_factory": factory}
-    return TestClient(app), queue, ctx, settings.signing_secret
+    return TestClient(app), queue, ctx, secret
 
 
 def _files(tmp_path: Path) -> tuple[Path, Path]:

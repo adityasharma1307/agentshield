@@ -65,7 +65,7 @@ def test_scenario_pack_hash_follows_sorted_paths(tmp_path: object) -> None:
 
 
 def test_local_signer_rejects_a_one_byte_change() -> None:
-    signer = LocalSigner(b"test-secret")
+    signer = LocalSigner(__import__("secrets").token_hex(32).encode("ascii"))
     payload = canonical_bytes(_body())
     signature = signer.sign(payload)
     assert signer.verify(payload, signature) is True

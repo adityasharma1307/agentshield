@@ -1,5 +1,7 @@
 # `docker compose up` starts the service, Postgres, and Redis.
 # Jaeger stays on the debug profile: `docker compose --profile debug up`.
+# Set a signing key first; there is no default and the API will not start
+# without one: `export AGENTSHIELD_SIGNING_SECRET=$(openssl rand -hex 32)`.
 services:
   postgres:
     image: postgres:16
@@ -25,6 +27,7 @@ services:
     environment:
       AGENTSHIELD_DATABASE_URL: postgresql+psycopg://agentshield:agentshield@postgres:5432/agentshield
       AGENTSHIELD_REDIS_URL: redis://redis:6379/0
+      AGENTSHIELD_SIGNING_SECRET: ${AGENTSHIELD_SIGNING_SECRET:?set AGENTSHIELD_SIGNING_SECRET to a random key, e.g. openssl rand -hex 32}
     entrypoint: ["python", "-m", "uvicorn"]
     command:
       - agentshield.service.app:create_app

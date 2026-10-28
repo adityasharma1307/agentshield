@@ -2,10 +2,12 @@
 
 import asyncio
 import json
+import secrets
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from agentshield.cli import main
 from agentshield.config import Settings
@@ -44,8 +46,8 @@ def _signed_report(tmp_path: Path) -> tuple[SignedReport, str]:
     url = "sqlite:///" + (tmp_path / "audit.db").resolve().as_posix()
     upgrade_database(url)
     factory = make_session_factory(make_engine(url))
-    secret = "boundary-test-secret"
-    settings = Settings(database_url=url, signing_secret=secret)
+    secret = secrets.token_hex(32)
+    settings = Settings(database_url=url, signing_secret=SecretStr(secret))
     app = create_app(settings, queue=MemoryQueue(), session_factory=factory)
     suite = tmp_path / "suite"
     suite.mkdir()

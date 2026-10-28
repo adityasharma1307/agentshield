@@ -62,7 +62,7 @@ def test_verify_accepts_a_local_signature(
         trace_refs=[],
         boundary=inprocess_boundary(),
     )
-    secret = b"test-secret"
+    secret = __import__("secrets").token_hex(32).encode("ascii")
     signed = SignedReport(
         report=body,
         signature=LocalSigner(secret).sign(canonical_bytes(body)),
@@ -91,7 +91,7 @@ def test_verify_rejects_a_tampered_report(
         trace_refs=[],
         boundary=inprocess_boundary(),
     )
-    secret = b"test-secret"
+    secret = __import__("secrets").token_hex(32).encode("ascii")
     signed = SignedReport(
         report=body,
         signature=LocalSigner(secret).sign(canonical_bytes(body)),

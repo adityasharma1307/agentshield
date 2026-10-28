@@ -27,7 +27,9 @@ upgrade_database("sqlite:///agentshield.db")
 | `GET` | `/runs/{id}/traces` | Ordered trace events for each scenario when the status is `succeeded`. Otherwise `409`. |
 | `GET` | `/runs/{id}/diff/{other_id}` | Scenario ids whose pass/fail differs, with a severity. `409` when the two runs do not share a suite hash. |
 
-The report signature is HMAC, algorithm `local`. It is not ML-DSA. `AGENTSHIELD_SIGNING_SECRET` is the key when it is set. The default key is for local development.
+The report signature is HMAC, algorithm `local`. It is not ML-DSA. The key comes from `AGENTSHIELD_SIGNING_SECRET`, and there is no default. Without it, or with a key shorter than 32 bytes or the old `agentshield-local-dev` value, the API and the worker refuse to start. Generate one with `openssl rand -hex 32`.
+
+The worker reads the key and deletes it from its environment. Only the signer keeps it. The agent runs in a child process with no `AGENTSHIELD_*` variables. On Linux the worker also marks itself non-dumpable, so a child running as the same user can't read the key from `/proc/<worker>/environ` or from the worker's memory. That doesn't stop root, or an agent that can read the files the key came from. For a hostile agent, run it as another user or in its own container.
 
 The signed report stores a sha256 of each scenario trace. The service database also stores the trace JSON so the dashboard can show arguments and results.
 
