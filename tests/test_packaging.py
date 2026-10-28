@@ -33,3 +33,9 @@ def test_release_build_installs_only_from_the_locks() -> None:
     assert "--require-hashes --no-deps -r .github/requirements/release-runtime.txt" in workflow
     assert "python -m build --no-isolation" in workflow
     assert "pip install --upgrade pip build twine" not in workflow
+
+
+def test_release_image_build_uses_no_cache() -> None:
+    workflow = (_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "cache-from" not in workflow
+    assert "no-cache: true" in workflow
