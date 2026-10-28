@@ -112,6 +112,11 @@ class IsolatedAgent(AgentUnderTest):
         """Start the child and import the agent there."""
         if self._process is not None and self._process.poll() is None:
             return
+        # The child would otherwise read the key from /proc/<ppid>/environ,
+        # which keeps the environment this process started with.
+        from agentshield.config import deny_same_user_inspection
+
+        deny_same_user_inspection()
         user_kwargs, home, separate = agent_user_launch()
         env = agent_child_environment()
         if home is not None:

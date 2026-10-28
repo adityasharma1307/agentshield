@@ -87,3 +87,39 @@ def test_agent_child_cannot_read_the_key_from_the_cli_process(tmp_path: Path) ->
     seen = json.loads(out.read_text(encoding="utf-8"))
     assert seen["own_env_has_key"] is False
     assert seen["parent_environ"].startswith("unreadable"), seen
+
+
+_DRIVER = """\
+import asyncio
+from agentshield.sandbox.agent_process import IsolatedAgent
+
+
+async def main():
+    with IsolatedAgent("keyprobe_bare:agent") as agent:
+        await agent.step("t", [], (), {})
+
+
+asyncio.run(main())
+"""
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="reads /proc")
+@pytest.mark.skipif(os.geteuid() == 0, reason="root can read any /proc entry")
+def test_bare_isolated_agent_child_cannot_read_the_key_from_its_parent(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "keyprobe_bare.py").write_text(_PROBE, encoding="utf-8")
+    driver = tmp_path / "driver.py"
+    driver.write_text(_DRIVER, encoding="utf-8")
+    out = tmp_path / "seen.json"
+    env = dict(os.environ)
+    env["AGENTSHIELD_SIGNING_SECRET"] = secrets.token_hex(32)
+    env["PROBE_OUT"] = str(out)
+    env["PYTHONPATH"] = os.pathsep.join([str(tmp_path), *sys.path])
+    completed = subprocess.run(
+        [sys.executable, str(driver)], env=env, capture_output=True, text=True, timeout=60
+    )
+    assert completed.returncode == 0, completed.stderr
+    seen = json.loads(out.read_text(encoding="utf-8"))
+    assert seen["own_env_has_key"] is False
+    assert seen["parent_environ"].startswith("unreadable:")
