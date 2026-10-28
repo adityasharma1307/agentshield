@@ -7,6 +7,7 @@
 [![Docker](https://github.com/adityasharma1307/agentshield/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/adityasharma1307/agentshield/actions/workflows/docker.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/adityasharma1307/agentshield/badge)](https://scorecard.dev/viewer/?uri=github.com/adityasharma1307/agentshield)
 
 ## 30-second quickstart
 
