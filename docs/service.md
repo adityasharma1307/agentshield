@@ -27,7 +27,21 @@ upgrade_database("sqlite:///agentshield.db")
 | `GET` | `/runs/{id}/traces` | Ordered trace events for each scenario when the status is `succeeded`. Otherwise `409`. |
 | `GET` | `/runs/{id}/diff/{other_id}` | Scenario ids whose pass/fail differs, with a severity. `409` when the two runs do not share a suite hash. |
 
-The report signature is HMAC, algorithm `local`. It is not ML-DSA. The key comes from `AGENTSHIELD_SIGNING_SECRET`, and there is no default. Without it, or with a key shorter than 32 bytes or the old `agentshield-local-dev` value, the API and the worker refuse to start. Generate one with `openssl rand -hex 32`.
+The report signature is HMAC, algorithm `local`. It is not ML-DSA. The key comes from `AGENTSHIELD_SIGNING_SECRET`, and there is no default. Without it, or with a key shorter than 32 bytes or the old `agentshield-local-dev` value, the API and the worker refuse to start.
+
+### Generating a key
+
+Generate the key; don't type one:
+
+```bash
+export AGENTSHIELD_SIGNING_SECRET="$(openssl rand -hex 32)"
+# or
+export AGENTSHIELD_SIGNING_SECRET="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+```
+
+Either gives 64 hex characters (256 random bits). Store it in your secret manager and pass it to the API and the worker. `agentshield verify --key` needs the same bytes in a file (`printf %s "$AGENTSHIELD_SIGNING_SECRET" > key.bin`).
+
+Agentshield also refuses a key of 32 bytes or more that looks hand-made: under about 80 bits by byte frequency, mostly runs of equal or adjacent characters (`aaaa`, `abcd`), or an 8-character stretch that repeats (`password-password-…`). These checks catch typed patterns. They can't catch a long passphrase of distinct words, so use a generated key.
 
 The worker reads the key and deletes it from its environment. Only the signer keeps it. The agent runs in a child process with no `AGENTSHIELD_*` variables. On Linux the worker also marks itself non-dumpable, so a child running as the same user can't read the key from `/proc/<worker>/environ` or from the worker's memory. That doesn't stop root, or an agent that can read the files the key came from. For a hostile agent, run it as another user or in its own container.
 
