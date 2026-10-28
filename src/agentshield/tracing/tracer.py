@@ -70,7 +70,7 @@ def otel_run_tracer(provider: object) -> Tracer:
     try:
         from opentelemetry.sdk.trace import TracerProvider
     except ImportError as exc:
-        raise ImportError("spans require the agentshield[otel] extra") from exc
+        raise ImportError("spans require the agsh[otel] extra") from exc
     if not isinstance(provider, TracerProvider):
         raise TypeError("provider must be an OpenTelemetry TracerProvider")
     return _SdkTracer(provider.get_tracer("agentshield"))
@@ -87,7 +87,7 @@ def configure_otlp_tracer(endpoint: str = "http://localhost:4318/v1/traces") -> 
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
     except ImportError as exc:
-        raise ImportError("OTLP export requires the agentshield[otel] extra") from exc
+        raise ImportError("OTLP export requires the agsh[otel] extra") from exc
     provider = TracerProvider()
     provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
     return _SdkTracer(provider.get_tracer("agentshield"))

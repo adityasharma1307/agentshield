@@ -57,7 +57,16 @@ Read the full [threat model](docs/threat-model.md) before pointing a live agent 
 
 ## Install
 
-Python 3.11 or newer, from a checkout of this repository:
+Python 3.11 or newer. From PyPI, the distribution is named `agsh`. The import package and the command are both `agentshield`:
+
+```bash
+pip install agsh
+agentshield --version
+```
+
+Extras use the same name, for example `pip install "agsh[openai]"`. `agentshield` on PyPI is an unrelated project.
+
+To work on the code, install from a checkout of this repository:
 
 ```bash
 python -m venv .venv
@@ -70,7 +79,7 @@ python -m pip install -e ".[dev,docs]"
 agentshield --version
 ```
 
-The OpenAI, LangGraph, OpenTelemetry, and service clients are optional: `.[openai]`, `.[langgraph]`, `.[otel]`, and `.[service]`. The core install does not import them.
+The OpenAI, LangGraph, OpenTelemetry, and service clients are optional: `agsh[openai]`, `agsh[langgraph]`, `agsh[otel]`, and `agsh[service]` (or `.[openai]` and so on from a checkout). The core install does not import them.
 
 ## Documentation
 

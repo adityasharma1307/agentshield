@@ -2,6 +2,15 @@
 
 These steps install the current package and check that the command is on your path. `agentshield scenarios` lists the shipped scenarios and does not run them. `agentshield verify` checks a signed report. There is still no `agentshield run` command. The [service](service.md) extra is the HTTP API that enqueues a run.
 
+## Install from PyPI
+
+The distribution is `agsh`. The import package and the command are `agentshield`:
+
+```bash
+pip install agsh
+agentshield --version
+```
+
 ## Install from a checkout
 
 Python 3.11 or newer:
@@ -24,7 +33,7 @@ python -m venv .venv
     .venv/bin/agentshield --version
     ```
 
-`agentshield --version` prints `agentshield 0.0.1`. With no arguments, the command prints help and exits 0.
+`agentshield --version` prints `agentshield 0.1.0`. With no arguments, the command prints help and exits 0.
 
 ## What you can run today
 
