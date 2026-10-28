@@ -15,7 +15,13 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
-from agentshield.signing_key import SIGNING_SECRET_ENV, SigningKeyError, check_local_secret
+from agentshield.signing_key import (
+    SIGNING_SECRET_ENV,
+    SIGNING_SECRET_FILE_ENV,
+    SigningKeyError,
+    check_local_secret,
+    read_secret_file,
+)
 
 
 class Settings(BaseModel):
@@ -50,8 +56,9 @@ def require_signing_secret(settings: Settings) -> bytes:
     """Return the signing key bytes, or raise `SigningKeyError` when unset or weak."""
     if settings.signing_secret is None:
         raise SigningKeyError(
-            f"{SIGNING_SECRET_ENV} is not set. Agentshield has no default signing key "
-            "and will not sign reports without one. Generate a key with "
+            f"{SIGNING_SECRET_ENV} (or {SIGNING_SECRET_FILE_ENV}) is not set. "
+            "Agentshield has no default signing key and will not sign reports without one. "
+            "Generate a key with "
             "`openssl rand -hex 32` and export it before starting the service."
         )
     return check_local_secret(settings.signing_secret.get_secret_value().encode("utf-8"))
@@ -84,6 +91,8 @@ def load_settings() -> Settings:
 
     `AGENTSHIELD_DATABASE_URL`, `AGENTSHIELD_REDIS_URL`, and
     `AGENTSHIELD_SIGNING_SECRET` are copied when they are non-empty.
+    `AGENTSHIELD_SIGNING_SECRET_FILE` may name a 0600 file, owned by this
+    user or root, that holds the key instead (`read_secret_file`).
     The signing secret is the HMAC key for algorithm `local`. It is removed
     from `os.environ` once read, so code imported later in this process (such
     as an agent under test) does not find it there, and the process is made
@@ -99,6 +108,11 @@ def load_settings() -> Settings:
     if redis_url:
         updates["redis_url"] = redis_url
     signing_secret = os.environ.pop(SIGNING_SECRET_ENV, None)
+    secret_file = os.environ.get(SIGNING_SECRET_FILE_ENV)
+    if secret_file and signing_secret is not None:
+        raise SigningKeyError(f"set {SIGNING_SECRET_ENV} or {SIGNING_SECRET_FILE_ENV}, not both")
+    if secret_file:
+        signing_secret = read_secret_file(secret_file)
     if signing_secret is not None:
         # Validate here so a weak or empty value fails loudly, not later.
         check_local_secret(signing_secret.encode("utf-8"))

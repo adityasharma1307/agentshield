@@ -17,3 +17,6 @@ node_modules/
 
 # Local working plan for coding agents. Not part of the published tree.
 agents.md
+
+# Local signing key for docker compose
+docker/secrets/

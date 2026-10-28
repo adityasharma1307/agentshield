@@ -30,6 +30,7 @@ from agentshield.report.schema import (
     TraceRef as ReportTraceRef,
 )
 from agentshield.report.signing import LocalSigner
+from agentshield.sandbox.agent_user import agent_identity_from_env, require_switch
 from agentshield.sandbox.env import inprocess_boundary
 from agentshield.sandbox.executor import run_agent
 from agentshield.scenarios.loader import load_scenarios
@@ -96,8 +97,12 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     Raises `SigningKeyError` when `AGENTSHIELD_SIGNING_SECRET` is unset or weak,
     so the worker does not start. The key is held only by the signer; the
-    settings kept in `ctx` have none.
+    settings kept in `ctx` have none. Raises `AgentUserError` when
+    `AGENTSHIELD_AGENT_USER` is set but this worker can't run agents as it.
     """
+    identity = agent_identity_from_env()
+    if identity is not None:
+        require_switch(identity)
     settings = load_settings()
     ctx["signer"] = LocalSigner(require_signing_secret(settings))
     ctx["settings"] = settings.without_signing_secret()
@@ -109,7 +114,9 @@ class WorkerSettings:
 
     functions: ClassVar[list[Any]] = [execute_run]
     on_startup = startup
-    redis_settings: ClassVar[RedisSettings] = RedisSettings.from_dsn(Settings().redis_url)
+    redis_settings: ClassVar[RedisSettings] = RedisSettings.from_dsn(
+        os.environ.get("AGENTSHIELD_REDIS_URL") or Settings().redis_url
+    )
 
 
 async def _build(

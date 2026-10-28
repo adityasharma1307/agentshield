@@ -61,6 +61,21 @@ jobs:
           python -m pip install --force-reinstall dist/*.whl
           agentshield --version
 
+      # Runs last, as root, so the agent child really switches to `nobody`.
+      # The checkout is made world-readable so that user can import it.
+      - name: Agent runs as a separate user (root)
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          d="$GITHUB_WORKSPACE"
+          while [ "$d" != "/" ]; do d="$(dirname "$d")"; chmod o+x "$d" 2>/dev/null || true; done
+          chmod -R o+rX "$GITHUB_WORKSPACE"
+          sudo -E env "PATH=$PATH" python -m pytest -p no:cacheprovider -rs tests/test_agent_user.py | tee agent-user.txt
+          if grep -q "switching users needs root" agent-user.txt; then
+            echo "the root-only test was skipped" >&2
+            exit 1
+          fi
+
   frontend:
     name: Dashboard
     runs-on: ubuntu-latest

@@ -1,7 +1,13 @@
-# `docker compose up` starts the service, Postgres, and Redis.
+# `docker compose up` starts the API, the worker, Postgres, and Redis.
 # Jaeger stays on the debug profile: `docker compose --profile debug up`.
-# Set a signing key first; there is no default and the API will not start
-# without one: `export AGENTSHIELD_SIGNING_SECRET=$(openssl rand -hex 32)`.
+# Create the signing key first. There is no default, and the API and worker
+# will not start without it. It is mounted as a Docker secret, and only root
+# in the api and worker containers can read it:
+#   mkdir -p docker/secrets
+#   (umask 077; openssl rand -hex 32 > docker/secrets/signing_key)
+#   sudo chown root:root docker/secrets/signing_key
+# The worker runs each agent as the unprivileged `agent` user, which can't read
+# that file or the worker's /proc entries.
 #
 # Required before `up` (no defaults, compose refuses to start without them):
 #   POSTGRES_PASSWORD, REDIS_PASSWORD
@@ -40,7 +46,15 @@ services:
       AGENTSHIELD_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
       AGENTSHIELD_ALLOWED_AGENTS: ${AGENTSHIELD_ALLOWED_AGENTS:-}
       AGENTSHIELD_ALLOWED_ROOTS: ${AGENTSHIELD_ALLOWED_ROOTS:-}
-      AGENTSHIELD_SIGNING_SECRET: ${AGENTSHIELD_SIGNING_SECRET:?set AGENTSHIELD_SIGNING_SECRET to a random key, e.g. openssl rand -hex 32}
+      AGENTSHIELD_SIGNING_SECRET_FILE: /run/secrets/signing_key
+    secrets:
+      - signing_key
+    # Root only to read the root-owned 0600 key; every capability is dropped.
+    user: "0:0"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
     entrypoint: ["python", "-m", "uvicorn"]
     command:
       - agentshield.service.app:create_app
@@ -52,6 +66,34 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AGENTSHIELD_DATABASE_URL: postgresql+psycopg://agentshield:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/agentshield
+      AGENTSHIELD_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+      AGENTSHIELD_SIGNING_SECRET_FILE: /run/secrets/signing_key
+      # The agent child runs as this user. The worker refuses to start if it
+      # can't switch to it.
+      AGENTSHIELD_AGENT_USER: agent
+    secrets:
+      - signing_key
+    # Root reads the key and starts each agent as `agent`. Only SETUID and
+    # SETGID are kept, and the agent child gets no capabilities.
+    user: "0:0"
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    entrypoint: ["arq"]
+    command:
+      - agentshield.service.worker.WorkerSettings
+
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     profiles:
@@ -62,3 +104,7 @@ services:
       - "127.0.0.1:4318:4318"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+
+secrets:
+  signing_key:
+    file: ./secrets/signing_key

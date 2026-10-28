@@ -17,6 +17,7 @@ from agentshield.audit import (
 )
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import ML_DSA_ALG, QKNOT_ALG, LocalSigner, qknot_verify, verify
+from agentshield.sandbox.agent_user import AgentUserError
 from agentshield.sandbox.env import describe_boundary, inprocess_boundary
 from agentshield.scenarios.dsl import ScenarioLoadError
 from agentshield.scenarios.loader import load_scenarios, shipped_suites_dir
@@ -115,7 +116,14 @@ def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, f
     try:
         policy = load_policy(policy_file)
         agent = load_isolated_agent(agent_entry)
-    except (ScenarioLoadError, PolicyLoadError, ValueError, TypeError, ImportError) as exc:
+    except (
+        ScenarioLoadError,
+        PolicyLoadError,
+        AgentUserError,
+        ValueError,
+        TypeError,
+        ImportError,
+    ) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     try:

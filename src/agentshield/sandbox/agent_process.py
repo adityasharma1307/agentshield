@@ -15,6 +15,11 @@ The child gets the parent's environment minus every `AGENTSHIELD_*` variable
 is an ordinary process: it can read files the operator's user can read and it
 can reach the network. This is a boundary against tampering with the harness
 in memory, not a sandbox for hostile code.
+
+With `AGENTSHIELD_AGENT_USER` set, the child also runs as that separate user
+with no supplementary groups (see `agent_user`). Then it can't read files
+that only the worker's user can read, such as a 0600 signing key, or
+`/proc/<worker>`. If that user can't be applied, the agent doesn't run.
 """
 
 from __future__ import annotations
@@ -27,22 +32,33 @@ import subprocess
 import sys
 import threading
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from types import TracebackType
 from typing import IO, Any
 
 from agentshield.adapters.base import AgentUnderTest
+from agentshield.sandbox.agent_user import (
+    AgentIdentity,
+    AgentUserError,
+    agent_identity_from_env,
+    require_switch,
+)
 from agentshield.trace import AgentStep, ToolSpec, TraceEvent
 
 _WORKER_MODULE = "agentshield.sandbox._agent_worker"
 _STRIPPED_PREFIX = "AGENTSHIELD_"
+_FROM_ENV = "env"
 
 
 class AgentProcessError(RuntimeError):
     """The agent child failed to answer: it died, timed out, or sent garbage."""
 
 
-def agent_child_environment() -> dict[str, str]:
-    """The child's environment: the parent's, minus `AGENTSHIELD_*`, plus `sys.path`."""
+def agent_child_environment(run_as: AgentIdentity | None = None) -> dict[str, str]:
+    """The child's environment: the parent's, minus `AGENTSHIELD_*`, plus `sys.path`.
+
+    With `run_as`, `HOME`, `USER`, and `LOGNAME` name that user instead.
+    """
     env = {
         key: value
         for key, value in os.environ.items()
@@ -50,6 +66,13 @@ def agent_child_environment() -> dict[str, str]:
     }
     env["PYTHONPATH"] = os.pathsep.join(path for path in sys.path if path)
     env["PYTHONUNBUFFERED"] = "1"
+    if run_as is not None:
+        env["HOME"] = run_as.home or "/"
+        for key in ("USER", "LOGNAME"):
+            if run_as.name:
+                env[key] = run_as.name
+            else:
+                env.pop(key, None)
     return env
 
 
@@ -60,11 +83,26 @@ class IsolatedAgent(AgentUnderTest):
     `ImportError`, `TypeError`, or `ValueError` the way an in-process import
     would. A child that dies or exceeds `step_timeout_s` is killed and
     restarted on the next call.
+
+    `run_as` defaults to the user `AGENTSHIELD_AGENT_USER` names, or none when
+    that is unset. `start()` raises `AgentUserError` when a requested user
+    can't be applied or the child does not report that uid.
     """
 
-    def __init__(self, entry: str, *, step_timeout_s: float = 120.0) -> None:
+    def __init__(
+        self,
+        entry: str,
+        *,
+        step_timeout_s: float = 120.0,
+        run_as: AgentIdentity | str | None = _FROM_ENV,
+    ) -> None:
         self.entry = entry
         self.step_timeout_s = step_timeout_s
+        if isinstance(run_as, str):
+            if run_as != _FROM_ENV:
+                raise ValueError(f"run_as must be an AgentIdentity, None, or {_FROM_ENV!r}")
+            run_as = agent_identity_from_env()
+        self.run_as = run_as
         self._process: subprocess.Popen[str] | None = None
         self._lock = threading.Lock()
 
@@ -72,18 +110,41 @@ class IsolatedAgent(AgentUnderTest):
         """Start the child and import the agent there."""
         if self._process is not None and self._process.poll() is None:
             return
-        process = subprocess.Popen(
-            [sys.executable, "-m", _WORKER_MODULE, self.entry],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=None,
-            text=True,
-            encoding="utf-8",
-            env=agent_child_environment(),
-        )
+        run_as = self.run_as
+        identity: dict[str, Any] = {}
+        if run_as is not None:
+            require_switch(run_as)
+            identity = {
+                "user": run_as.uid,
+                "group": run_as.gid,
+                "extra_groups": [],
+                "cwd": run_as.home if run_as.home and Path(run_as.home).is_dir() else "/",
+            }
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-m", _WORKER_MODULE, self.entry],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=None,
+                text=True,
+                encoding="utf-8",
+                env=agent_child_environment(run_as),
+                **identity,
+            )
+        except (PermissionError, OSError) as exc:
+            if run_as is None:
+                raise
+            raise AgentUserError(
+                f"could not start the agent as uid {run_as.uid}: {type(exc).__name__}"
+            ) from exc
         self._process = process
         reply = self._read(process)
         if reply.get("ready") is True:
+            if run_as is not None and reply.get("ids") != [run_as.uid, run_as.uid, run_as.gid]:
+                self.close()
+                raise AgentUserError(
+                    f"agent child reported ids {reply.get('ids')!r}, expected uid {run_as.uid}"
+                )
             return
         self.close()
         kind = reply.get("kind")

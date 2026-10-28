@@ -1,7 +1,7 @@
 """Child entrypoint for `IsolatedAgent`. Run as `python -m agentshield.sandbox._agent_worker`.
 
 The protocol is one JSON object per line. The first line out is
-`{"ready": true}` or `{"error", "kind"}`. Each line in is a step request;
+`{"ready": true, "ids": [uid, euid, gid]}` or `{"error", "kind"}`. Each line in is a step request;
 each line out is `{"ok": true, "step": ...}` or `{"ok": false, "error": ...}`.
 
 The protocol uses a private copy of the original stdout. File descriptor 1
@@ -39,6 +39,8 @@ def _kind(exc: Exception) -> str:
 
 def main() -> int:
     channel = _channel()
+    # Read before the agent is imported, so the agent can't change the answer.
+    ids = [os.getuid(), os.geteuid(), os.getgid()] if hasattr(os, "geteuid") else None
     entry = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
         from agentshield.audit import load_agent
@@ -50,7 +52,7 @@ def main() -> int:
     except Exception as exc:
         _send(channel, {"error": f"{type(exc).__name__}: {exc}", "kind": "Error"})
         return 1
-    _send(channel, {"ready": True})
+    _send(channel, {"ready": True, "ids": ids})
     loop = asyncio.new_event_loop()
     try:
         for line in sys.stdin:

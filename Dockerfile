@@ -9,7 +9,8 @@ FROM python:3.12.16-slim-bookworm@sha256:62ed8e07e544e8555c5d93748d5275015136b7f
 RUN apt-get update \
     && apt-get install -y --no-install-recommends firejail \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 10001 agentshield
+    && useradd --create-home --uid 10001 agentshield \
+    && useradd --create-home --uid 10002 --user-group --shell /usr/sbin/nologin agent
 
 COPY --from=build /install /usr/local
 
