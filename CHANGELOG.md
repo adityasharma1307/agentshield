@@ -14,6 +14,7 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - `docker/compose.yaml` published Postgres and Redis on every interface with a fixed password and the API on `0.0.0.0`. Postgres and Redis now publish no ports, both require a password from the environment with no default, and the API and Jaeger bind `127.0.0.1` only.
 - Reports did not record the boundary the README and threat model said they did. `ReportBody` now has a signed `boundary` field, `agentshield verify` prints it, and the docs say only what the code does.
 - Removed the public default signing key `agentshield-local-dev`. Anyone could use it to forge a signed report. The API and the worker now refuse to start unless `AGENTSHIELD_SIGNING_SECRET` is set. They also refuse an empty key, a key under 32 bytes, and the old default value. `LocalSigner` won't sign or verify with those keys either. `docker compose up` needs the variable set. The worker deletes the key from its environment after reading it and keeps it only in the signer. On Linux it also marks itself non-dumpable, so a same-user agent child can't read the key from `/proc`.
+- `agentshield run` left `AGENTSHIELD_SIGNING_SECRET` readable to the agent child through `/proc/<parent>/environ` when it was set in the shell. `run` now drops the variable from its environment and, on Linux, marks itself non-dumpable before it starts the agent.
 
 ## [0.1.0] - 2026-10-28
 
