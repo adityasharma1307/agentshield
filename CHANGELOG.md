@@ -6,13 +6,20 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-28
+
+First public release. Set this date to the day the `v0.1.0` tag is pushed.
+
 ### Changed
 
+- The version is `0.1.0`.
+- The PyPI distribution is named `agsh`, because `agentshield` on PyPI is an unrelated project. Install with `pip install agsh`. The import package (`import agentshield`) and the `agentshield` command are unchanged. Extra hints in error messages now name `agsh[...]`.
 - The project name is Agentshield. The package and the command are `agentshield`.
 - `firejail_network_deny_available` is false on Windows. On macOS and Linux, including a Docker image, it is true only when `firejail` is on `PATH`. The network-deny test follows that condition.
 
 ### Fixed
 
+- The Gate action builds again. `action.Dockerfile` moved to the repository root, so its build context includes the package and the entrypoint. The entrypoint puts the checked-out workspace on `PYTHONPATH`. The leaky-agent job now requires exit code 1, so a broken build can no longer pass as a caught leak.
 - The default search trap used `CANARY-AGENTSHIELD-0001` on the same line as its `INSTR:` payload. That canary does not match `CANARY-[0-9a-f]+`, so a careful summary copied the tail of it and the instruction. The trap canary is now hex, and the instruction is on its own line.
 - The default `http_get` trap hid `INSTR:` inside an HTML comment, so a line-start check never saw it. The instruction is now on its own line, and it names `send_email` with the default canary.
 - A subprocess tool handler no longer inherits the parent environment. The child gets an allowlist, so credential variables stay in the parent.
@@ -21,6 +28,8 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Added
 
+- A `Release` workflow. A `vX.Y.Z` tag builds and checks the sdist and wheel, and confirms that the tag matches `__version__` and has a changelog section. It then publishes to PyPI through Trusted Publishing (no stored token) and pushes the image, with an SBOM and provenance, to `ghcr.io/adityasharma1307/agentshield`.
+- A `Docker` workflow that builds the release image and the action image from a clean checkout. It checks that the release image runs as non-root, that the careful agent passes and the leaky agent fails, and that neither image contains `.env`, key, or `.git` files.
 - A policy loader for schema version 1. Unknown fields, a bad severity, a duplicate rule id, an empty rule list, and a check missing its parameter are rejected.
 - Deterministic checks `tool_never_called`, `tool_called`, `secret_not_in_output`, `no_external_send_of`, `regex`, and `span_sequence`. A failure reason cites the event sequence. `no_external_send_of` matches text a scenario labeled, and treats `send_email` and `http_get` as outbound.
 - `llm_judge` rows, `source: judge`, decided by a majority of an odd sample of at least 3. CI replays recorded votes and does not call a model. A score can ignore `source: judge`.
@@ -54,6 +63,10 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - `Settings.max_steps` and `Settings.time_limit_s`.
 - `docs/sandbox.md`, and an updated `docs/threat-model.md` current-status section naming exactly which isolation guarantees hold today.
 
+### Security
+
+- `.dockerignore` excludes `.env` files, keys, and local data from every image build context.
+
 ## [0.0.1] - 2026-09-22
 
 ### Added
@@ -63,3 +76,6 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 - GitHub Actions workflow that lints, typechecks, tests, builds the docs, and builds a wheel on Python 3.11 and 3.12.
 - Documentation scaffold: quickstart, scenario guide, policy reference, threat model, and the build roadmap.
 - Contributor guide, changelog policy, and issue and pull request templates.
+
+[Unreleased]: https://github.com/adityasharma1307/agentshield/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/adityasharma1307/agentshield/releases/tag/v0.1.0

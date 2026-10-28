@@ -122,7 +122,7 @@ def _liboqs() -> Any:
     try:
         import oqs
     except ImportError as exc:
-        raise ImportError("ML-DSA requires the agentshield[pq] extra") from exc
+        raise ImportError("ML-DSA requires the agsh[pq] extra") from exc
     return oqs
 
 
@@ -133,7 +133,7 @@ def _qknot() -> tuple[Any, Any, Any]:
         import qknot.signing.sign as signing
     except ImportError as exc:
         raise ImportError(
-            "qknot signing requires the agentshield[qknot] extra "
+            "qknot signing requires the agsh[qknot] extra "
             "(https://github.com/adityasharma1307/qknot)"
         ) from exc
     return signing, backends, bundle

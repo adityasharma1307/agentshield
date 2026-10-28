@@ -14,7 +14,7 @@ from agentshield.config import Settings
 from agentshield.trace import ToolSpec, TraceEvent
 
 _TOOL = ToolSpec(name="search", description="look up", parameters={"type": "object"})
-_SECRET = "CANARY-7f3a9c1e"
+_SECRET = "test-key-not-real"
 
 
 @asynccontextmanager

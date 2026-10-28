@@ -212,12 +212,12 @@ agentshield/
 - [ ] Dockerfile (multi-stage, non-root) + compose for the full stack. The files are in the tree. This machine has no `docker` command, so the image has not been built here.
 - [ ] Tag `v0.1.0`; publish to PyPI (Test PyPI first); signed release notes.
 - [ ] Record a 3-minute demo and publish a short results write-up.
-- **DoD:** `pip install agentshield`, run quickstart, reproduce a signed report; results table published.
+- **DoD:** `pip install agsh`, run quickstart, reproduce a signed report; results table published.
 
 ---
 
 ## 5. Definition of done (whole project)
-- One command runs the full stack; `pip install agentshield` works clean.
+- One command runs the full stack; `pip install agsh` works clean.
 - ≥20 adversarial scenarios across 5 categories; ≥5 models benchmarked.
 - Signed, verifiable, diff-able reports; public dashboard.
 - The Action gates a demo PR; CI green; mypy strict; coverage ≥80%.
