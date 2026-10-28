@@ -24,7 +24,7 @@ python -m venv .venv
     .venv/bin/agentshield --version
     ```
 
-`agentshield --version` prints `agentshield 0.0.1`. With no arguments, the command prints help and exits 0.
+`agentshield --version` prints `agentshield 0.1.0`. With no arguments, the command prints help and exits 0.
 
 ## What you can run today
 
