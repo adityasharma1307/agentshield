@@ -13,6 +13,7 @@ First public release. Set this date to the day the `v0.1.0` tag is pushed.
 ### Changed
 
 - The version is `0.1.0`.
+- The PyPI distribution is named `agsh`, because `agentshield` on PyPI is an unrelated project. Install with `pip install agsh`. The import package (`import agentshield`) and the `agentshield` command are unchanged. Extra hints in error messages now name `agsh[...]`.
 - The project name is Agentshield. The package and the command are `agentshield`.
 - `firejail_network_deny_available` is false on Windows. On macOS and Linux, including a Docker image, it is true only when `firejail` is on `PATH`. The network-deny test follows that condition.
 

@@ -14,7 +14,7 @@ def test_version_is_semver() -> None:
 
 def test_distribution_version_matches_package() -> None:
     try:
-        installed = version("agentshield")
+        installed = version("agsh")
     except PackageNotFoundError:
-        pytest.skip("agentshield is not installed")
+        pytest.skip("agsh is not installed")
     assert installed == __version__

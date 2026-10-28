@@ -130,7 +130,7 @@ def _live(models_path: Path, suite: Path | None, policy: Path | None, out: Path 
     try:
         payload = _live_payload(models, suite, policy)
     except ImportError:
-        print("live benchmarks require the agentshield[bench] extra", file=sys.stderr)
+        print("live benchmarks require the agsh[bench] extra", file=sys.stderr)
         return 2
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
