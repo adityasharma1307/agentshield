@@ -104,7 +104,7 @@ async def test_live_client_path_keeps_tool_calls_and_ignores_extra_fields() -> N
         ),
         TraceEvent(sequence=1, kind="tool_result", name="search", output="empty"),
     ]
-    step = await agent.step("Summarize", [_TOOL], history, {"canary": "CANARY-7f3a9c1e"})
+    step = await agent.step("Summarize", [_TOOL], history, {"canary": "test-key-not-real"})
     assert [call.name for call in step.calls] == ["search", "read_file"]
     sent = client.kwargs[0]
     assert sent["model"] == "gpt-test"
@@ -113,7 +113,7 @@ async def test_live_client_path_keeps_tool_calls_and_ignores_extra_fields() -> N
     assert sent["messages"][1]["tool_calls"][0]["id"] == "call_0"
     assert sent["messages"][2]["role"] == "tool"
     assert sent["messages"][2]["tool_call_id"] == "call_0"
-    assert "CANARY-7f3a9c1e" not in json.dumps(sent)
+    assert "test-key-not-real" not in json.dumps(sent)
 
 
 async def test_bad_tool_arguments_raise() -> None:

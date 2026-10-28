@@ -69,7 +69,7 @@ async def test_non_object_graph_result_raises() -> None:
 
 
 async def test_graph_exception_does_not_include_context() -> None:
-    secret = "CANARY-7f3a9c1e"
+    secret = "test-key-not-real"
 
     class ExplodingGraph:
         async def ainvoke(self, state: Mapping[str, Any]) -> Mapping[str, Any]:

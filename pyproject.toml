@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentshield"
+name = "agsh"
 dynamic = ["version"]
 description = "Compliance and red-teaming harness for tool-using LLM agents."
 readme = "README.md"
@@ -77,6 +77,11 @@ agentshield = "agentshield.cli:main"
 
 [tool.hatch.version]
 path = "src/agentshield/__init__.py"
+
+# The distribution is `agsh` on PyPI. The import package and the command stay
+# `agentshield`, so the wheel names the package directory explicitly.
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentshield"]
 
 [tool.hatch.build.targets.sdist]
 artifacts = [

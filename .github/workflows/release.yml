@@ -1,0 +1,124 @@
+name: Release
+
+# A pushed tag `vX.Y.Z` builds the sdist and wheel, checks that the tag matches
+# `__version__` and has a CHANGELOG section, then publishes:
+#   - to PyPI through Trusted Publishing (OIDC). No API token is stored.
+#   - the release image to ghcr.io/<owner>/agentshield, using the job's
+#     GITHUB_TOKEN. No personal token is stored.
+# Pull requests that touch packaging run the build job only, as a dry run.
+on:
+  push:
+    tags: ["v*.*.*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - pyproject.toml
+      - src/agentshield/__init__.py
+      - CHANGELOG.md
+      - Dockerfile
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Tag matches the package version and has a changelog entry
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(python -c 'import re,pathlib; print(re.search(r"__version__ = \"([^\"]+)\"", pathlib.Path("src/agentshield/__init__.py").read_text()).group(1))')"
+          test "v${version}" = "${TAG}" || { echo "tag ${TAG} does not match __version__ ${version}"; exit 1; }
+          grep -q "^## \[${version}\]" CHANGELOG.md || { echo "CHANGELOG.md has no [${version}] section"; exit 1; }
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check --strict dist/*
+
+      - name: Install the wheel and run the command
+        run: |
+          python -m pip install dist/*.whl
+          agentshield --version
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    # Must match the environment named in the PyPI trusted publisher. Add
+    # required reviewers to this environment so a tag alone cannot publish.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/agsh
+    permissions:
+      id-token: write  # OIDC for Trusted Publishing; also signs PyPI attestations
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  ghcr:
+    name: Publish image to GHCR
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: ghcr
+    permissions:
+      contents: read
+      packages: write  # push to ghcr.io with GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/agentshield
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.licenses=MIT
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=release
