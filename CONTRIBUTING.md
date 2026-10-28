@@ -1,6 +1,8 @@
 # Contributing to Agentshield
 
-Thanks for helping build Agentshield. The product is early: the foundation in this repository is real, and the audit runner described in [docs/roadmap.md](docs/roadmap.md) is still ahead.
+Thanks for helping build Agentshield. The project is pre-1.0, and [docs/roadmap.md](docs/roadmap.md) is the scope list.
+
+Everyone who takes part follows the [Code of Conduct](CODE_OF_CONDUCT.md). **Report security issues privately** as described in [SECURITY.md](SECURITY.md), not in a public issue or pull request.
 
 ## Setup
 
@@ -32,6 +34,9 @@ Before opening a pull request, run the same checks CI runs:
 
 ## What to change
 
+- New to the codebase? A new adversarial scenario is a good first contribution. See [docs/writing-scenarios.md](docs/writing-scenarios.md): add a YAML file under `src/agentshield/scenarios/suites/<suite>/`, then check that the careful example still passes and the leaky one still fails.
+- Never commit real credentials, even in tests. Use obviously fake values such as `test-key-not-real`. CI runs a secret scan.
+
 - Keep a change inside the phase it belongs to. The roadmap is the scope list.
 - Add or update tests for behavior you change. A fixture transcript is preferred over a live model call. CI must not call a model provider.
 - Type new public functions. mypy runs in strict mode.
@@ -59,4 +64,4 @@ Use the pull request template. Describe what changed and how you checked it. One
 
 ## Reporting issues
 
-Use the bug and feature templates. Include the Agentshield version (`agentshield --version`), the Python version, and the operating system.
+Use the bug and feature templates. Security issues go through [SECURITY.md](SECURITY.md) instead. Include the Agentshield version (`agentshield --version`), the Python version, and the operating system.
