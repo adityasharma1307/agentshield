@@ -1,6 +1,8 @@
+# VCS and local tooling
+.git
+.github
 .venv
 venv
-.git
 .mypy_cache
 .pytest_cache
 .ruff_cache
@@ -9,3 +11,22 @@ frontend/node_modules
 frontend/dist
 **/__pycache__
 %SystemDrive%
+
+# Secrets and keys must never reach a build context
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+secrets/
+**/secrets/
+
+# Local data and run output
+data/
+*.db
+*.sqlite
