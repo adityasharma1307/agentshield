@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/adityasharma1307/agentshield/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue. See SECURITY.md.
+  - name: Read the threat model
+    url: https://github.com/adityasharma1307/agentshield/blob/main/docs/threat-model.md
+    about: Check whether the behavior is a documented limit before filing a bug.
