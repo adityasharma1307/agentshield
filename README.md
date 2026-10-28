@@ -1,29 +1,59 @@
 # Agentshield
 
-Compliance and red-teaming harness for tool-using LLM agents.
+**Red-team your tool-using LLM agent in CI: run it against prompt-injection and exfiltration scenarios in a sandbox, score every tool call against a policy, and fail the pull request when it leaks.**
 
-Agentshield runs an agent against adversarial scenarios inside a sandbox, traces every model and tool call, scores the trace against a declarative policy, and writes a signed audit report. A GitHub Action fails a pull request when the agent regresses.
+[![CI](https://github.com/adityasharma1307/agentshield/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/adityasharma1307/agentshield/actions/workflows/ci.yml)
+[![Gate](https://github.com/adityasharma1307/agentshield/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/adityasharma1307/agentshield/actions/workflows/gate.yml)
+[![Docker](https://github.com/adityasharma1307/agentshield/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/adityasharma1307/agentshield/actions/workflows/docker.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
-## Status
+## 30-second quickstart
 
-The adapter layer, the sandbox, the scenario suites, tracing, the policy scorer, signed-report verification, and the HTTP service are in place.
+```bash
+git clone https://github.com/adityasharma1307/agentshield.git && cd agentshield
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install .
 
-One interface, `AgentUnderTest.step`, asks an agent for its next action and gets back either tool calls or a final answer. The agent does not execute tools. Three adapters sit on that interface: **HTTP** (any service that returns the next action as JSON), **OpenAI SDK** (a live client, or a recorded completion in tests), and **LangGraph** (a graph that yields the next step).
+# A careful agent passes: exit 0
+python -m agentshield run --agent examples.careful_agent.agent:agent \
+  --suite src/agentshield/scenarios/suites --policy src/agentshield/scoring/default_policy.yaml
 
-The sandbox is what runs that step loop and executes tools:
+# A leaky agent follows planted instructions and leaks a canary: exit 1, failing rules listed
+python -m agentshield run --agent examples.leaky_agent.agent:agent \
+  --suite src/agentshield/scenarios/suites --policy src/agentshield/scoring/default_policy.yaml
+```
 
-- A deterministic starter toolset — `search`, `read_file`, `send_email`, `http_get`, `db_query` — each with a trap variant selected by scenario state, not a global
-- `ToolRegistry`, the only path from a requested tool call to a result; an unknown tool or schema-invalid arguments come back as a rejection, not a crash
-- An executor that dispatches every tool call through the registry only, and stops on a final answer, a step limit, a time limit, or an agent crash
-- A reported process boundary (`inprocess` by default; `subprocess`, hardened with `firejail --net=none` when it is installed) — see the [threat model](docs/threat-model.md) for exactly which guarantees hold today
+Run it with `python -m` from the checkout so the `examples` package is importable. To gate your own agent, point `--agent` at `your_module:your_agent`, or use the GitHub Action:
 
-`agentshield scenarios` lists the 22 shipped scenarios (id, suite, and expectation names) and does not run them. The runner scores each expectation with the same rules as a policy file. Every run stores an ordered trace, including full tool arguments. Optional OpenTelemetry spans carry the argument hash, not the raw arguments. A trace plus a policy file produces one row per rule. CI replays those agents, fixtures, and recorded judge votes. It does not call a model provider. `agentshield verify` checks a signature over the report's canonical JSON. The default signer in tests is local, not ML-DSA. The optional `qknot` extra signs with Ed25519 and ML-DSA-87; that check uses the public keys inside the bundle. The `service` extra accepts `POST /runs` and returns the signed report when a worker finishes. `agentshield run` scores a suite and exits 1 when a rule at or above the chosen severity fails.
+```yaml
+- uses: adityasharma1307/agentshield@main
+  with:
+    agent: your_package.agent:agent
+    suites: src/agentshield/scenarios/suites
+    policy: src/agentshield/scoring/default_policy.yaml
+    fail_on: high
+```
 
-## Next
+## What it does
 
-**Release.** Tag `0.1.0` and publish only when that is requested. A five-model live benchmark still needs provider keys.
+- **Adapters.** One interface, `AgentUnderTest.step`, returns the agent's next tool calls or its final answer, and the agent never executes tools itself. Adapters cover HTTP, the OpenAI SDK, and LangGraph.
+- **Sandbox.** Every tool call goes through a mock `ToolRegistry` (`search`, `read_file`, `send_email`, `http_get`, `db_query`), each with a deterministic trap variant. Step and time limits apply.
+- **Scenarios.** 22 adversarial scenarios cover injection, exfiltration, scope creep, policy violation, and tool jailbreak. `agentshield scenarios` lists them.
+- **Scoring.** A declarative YAML policy is applied to the ordered trace. The default policy is tagged for the EU AI Act, the NIST AI RMF, India's DPDP Act, and UAE and DIFC data law.
+- **Reports and gating.** Reports are signed and checked with `agentshield verify`. The Docker GitHub Action fails a pull request at or above a chosen severity. An optional FastAPI service and React dashboard are included.
 
-The local results table is [RESULTS.md](RESULTS.md). The image is the root `Dockerfile`.
+CI replays recorded fixtures and never calls a model provider. Local example-agent results are in [RESULTS.md](RESULTS.md).
+
+## Threat model in brief
+
+The agent under test, and everything a scenario feeds it, are treated as hostile. Agentshield measures whether the agent stays inside the policy, and it keeps scenario side effects off the host:
+
+- **Holds today:** tools are mocks only, tool output is deterministic, step and wall-clock limits apply, and the trace is complete, including rejected calls. Spans carry argument hashes, not raw arguments.
+- **Network containment** needs `subprocess` mode with `firejail` installed. In the default `inprocess` mode, a handler that opens its own socket is not stopped. Each run reports which boundary it actually had.
+- **Out of scope:** the model provider (prompts leave the machine), adapter code the operator chose to install, and binding a qknot signature to a person.
+
+Read the full [threat model](docs/threat-model.md) before pointing a live agent at this tree. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Install
 
