@@ -6,6 +6,12 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
+### Security
+
+- The agent under test could edit or wipe its own trace. `step()` received the executor's live event list, and an agent that cleared it before answering passed every scenario. The executor now hands `step()` deep copies, deep-copies call arguments before recording them, and checks the mock tools' outbound log against the trace (`TraceIntegrityError`).
+- The agent under test ran in the process that scores and signs. An agent could replace `agentshield.audit.score_trace` at import time and pass every scenario. `agentshield run`, the Action, and the service now run it in a child process (`IsolatedAgent`) without `AGENTSHIELD_*` environment variables.
+- Reports did not record the boundary the README and threat model said they did. `ReportBody` now has a signed `boundary` field, `agentshield verify` prints it, and the docs say only what the code does.
+
 ## [0.1.0] - 2026-10-28
 
 First public release. Set this date to the day the `v0.1.0` tag is pushed.

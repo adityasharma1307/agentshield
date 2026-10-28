@@ -50,8 +50,8 @@ CI replays recorded fixtures and never calls a model provider. Local example-age
 
 The agent under test, and everything a scenario feeds it, are treated as hostile. Agentshield measures whether the agent stays inside the policy, and it keeps scenario side effects off the host:
 
-- **Holds today:** tools are mocks only, tool output is deterministic, step and wall-clock limits apply, and the trace is complete, including rejected calls. Spans carry argument hashes, not raw arguments.
-- **Network containment** needs `subprocess` mode with `firejail` installed. In the default `inprocess` mode, a handler that opens its own socket is not stopped. Each run reports which boundary it actually had.
+- **Holds today:** tools are mocks only, tool output is deterministic, step and wall-clock limits apply, and the trace is complete, including rejected calls. The executor keeps the trace private: the agent gets copies of its history, so it cannot edit or wipe what gets scored. `agentshield run`, the Action, and the service run the agent in a child process without any `AGENTSHIELD_*` variables, so it cannot patch the scorer or read the signing secret from the environment. Spans carry argument hashes, not raw arguments.
+- **Not contained:** the agent's child process is an ordinary process. It can read files your user can read and open network connections. Tool handlers run in the scoring process (`inprocess`); `run`, the Action, and the service do not use the firejail `subprocess` mode, so their reports always say `network_denied: false`. Every signed report records this in its `boundary` field, and `agentshield verify` prints it.
 - **Out of scope:** the model provider (prompts leave the machine), adapter code the operator chose to install, and binding a qknot signature to a person.
 
 Read the full [threat model](docs/threat-model.md) before pointing a live agent at this tree. To report a vulnerability, see [SECURITY.md](SECURITY.md).

@@ -21,7 +21,7 @@ Report it privately through GitHub: open the repository's **Security** tab, then
 Please include:
 
 - The Agentshield version or commit (`agentshield --version`), the Python version, and the OS
-- The sandbox boundary the run reported (`inprocess` or `subprocess`, and whether `network_denied` was true)
+- The sandbox boundary the run reported (the `boundary` line `agentshield verify` prints, or the report's `boundary` field)
 - A minimal scenario, agent, or policy that reproduces the issue, plus the observed and expected behavior
 
 ## What to expect
