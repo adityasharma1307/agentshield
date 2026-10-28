@@ -1,0 +1,5 @@
+# Tools the release build job installs. Regenerate with:
+#   uv pip compile .github/requirements/release-tools.in --generate-hashes --python-version 3.12 --python-platform x86_64-unknown-linux-gnu -o .github/requirements/release-tools.txt
+build==1.6.1
+twine==7.0.0
+hatchling==1.29.0
