@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12.16-slim-bookworm@sha256:62ed8e07e544e8555c5d93748d5275015136b7f5c52b5e8679b4de339c3779d3
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends firejail \

@@ -1,0 +1,44 @@
+# Weekly dependency updates. Grouped so each ecosystem opens at most one PR a
+# week for minor and patch bumps. Majors arrive on their own for review.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies, python]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        update-types: [minor, patch]
+    labels: [dependencies, github-actions]
+
+  # Dockerfile and action.Dockerfile pin python by tag and digest. Dependabot
+  # bumps both together, so base-image security fixes still arrive.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies, frontend]
