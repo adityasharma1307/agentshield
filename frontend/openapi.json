@@ -294,6 +294,49 @@
         "title": "AgentTrace",
         "description": "The ordered record of a finished or stopped run."
       },
+      "BoundaryReport": {
+        "properties": {
+          "boundary": {
+            "type": "string",
+            "enum": [
+              "inprocess",
+              "subprocess"
+            ],
+            "title": "Boundary"
+          },
+          "agent_process": {
+            "type": "string",
+            "enum": [
+              "inprocess",
+              "subprocess"
+            ],
+            "title": "Agent Process",
+            "default": "inprocess"
+          },
+          "firejail_available": {
+            "type": "boolean",
+            "title": "Firejail Available"
+          },
+          "gvisor_available": {
+            "type": "boolean",
+            "title": "Gvisor Available"
+          },
+          "network_denied": {
+            "type": "boolean",
+            "title": "Network Denied"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "boundary",
+          "firejail_available",
+          "gvisor_available",
+          "network_denied"
+        ],
+        "title": "BoundaryReport",
+        "description": "What a run's process boundary actually was, stated plainly.\n\n`boundary` is where tool handlers ran. `agent_process` is where the\nagent's own `step()` code ran: `subprocess` when `agentshield run` or the\nservice started it with `IsolatedAgent`, `inprocess` when a library\ncaller passed an agent object straight to the executor."
+      },
       "DiffBody": {
         "properties": {
           "scenarios": {
@@ -381,6 +424,9 @@
             },
             "type": "array",
             "title": "Trace Refs"
+          },
+          "boundary": {
+            "$ref": "#/components/schemas/BoundaryReport"
           }
         },
         "additionalProperties": false,
@@ -391,10 +437,11 @@
           "policy_version",
           "created_at",
           "scenarios",
-          "trace_refs"
+          "trace_refs",
+          "boundary"
         ],
         "title": "ReportBody",
-        "description": "The bytes that get signed. Fields are the Phase 6 schema."
+        "description": "The bytes that get signed. Fields are the Phase 6 schema.\n\n`boundary` records the process boundary the run actually had, so a\nreviewer reads the containment the run got rather than the one the docs\ndescribe. It is inside the signed bytes, so it cannot be edited after\nsigning."
       },
       "RunAccepted": {
         "properties": {

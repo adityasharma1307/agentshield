@@ -139,6 +139,34 @@ export interface components {
             final_text: string;
         };
         /**
+         * BoundaryReport
+         * @description What a run's process boundary actually was, stated plainly.
+         *
+         *     `boundary` is where tool handlers ran. `agent_process` is where the
+         *     agent's own `step()` code ran: `subprocess` when `agentshield run` or the
+         *     service started it with `IsolatedAgent`, `inprocess` when a library
+         *     caller passed an agent object straight to the executor.
+         */
+        BoundaryReport: {
+            /**
+             * Boundary
+             * @enum {string}
+             */
+            boundary: "inprocess" | "subprocess";
+            /**
+             * Agent Process
+             * @default inprocess
+             * @enum {string}
+             */
+            agent_process: "inprocess" | "subprocess";
+            /** Firejail Available */
+            firejail_available: boolean;
+            /** Gvisor Available */
+            gvisor_available: boolean;
+            /** Network Denied */
+            network_denied: boolean;
+        };
+        /**
          * DiffBody
          * @description Scenario ids that changed outcome. `left` is the first run in the URL.
          */
@@ -166,6 +194,11 @@ export interface components {
         /**
          * ReportBody
          * @description The bytes that get signed. Fields are the Phase 6 schema.
+         *
+         *     `boundary` records the process boundary the run actually had, so a
+         *     reviewer reads the containment the run got rather than the one the docs
+         *     describe. It is inside the signed bytes, so it cannot be edited after
+         *     signing.
          */
         ReportBody: {
             /** Agent Id */
@@ -180,6 +213,7 @@ export interface components {
             scenarios: components["schemas"]["ScenarioOutcome"][];
             /** Trace Refs */
             trace_refs: components["schemas"]["TraceRef"][];
+            boundary: components["schemas"]["BoundaryReport"];
         };
         /**
          * RunAccepted

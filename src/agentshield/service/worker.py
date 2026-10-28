@@ -30,6 +30,7 @@ from agentshield.report.schema import (
     TraceRef as ReportTraceRef,
 )
 from agentshield.report.signing import LocalSigner
+from agentshield.sandbox.env import inprocess_boundary
 from agentshield.sandbox.executor import run_agent
 from agentshield.scenarios.loader import load_scenarios
 from agentshield.scenarios.runner import registry_for, scenario_state_for
@@ -185,6 +186,7 @@ async def _build(
         created_at=created_at,
         scenarios=outcomes,
         trace_refs=[ReportTraceRef(scenario_id=ref.scenario_id, sha256=ref.sha256) for ref in refs],
+        boundary=inprocess_boundary(agent_process="subprocess"),
     )
     signature = LocalSigner(settings.signing_secret.encode("utf-8")).sign(canonical_bytes(body))
     signed = SignedReport(report=body, signature=signature, algorithm="local")

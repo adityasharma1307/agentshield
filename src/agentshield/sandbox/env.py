@@ -25,16 +25,24 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 Boundary = Literal["inprocess", "subprocess"]
+AgentProcess = Literal["inprocess", "subprocess"]
 
 _WORKER_PATH = Path(__file__).with_name("_worker.py")
 
 
 class BoundaryReport(BaseModel):
-    """What a run's process boundary actually was, stated plainly."""
+    """What a run's process boundary actually was, stated plainly.
+
+    `boundary` is where tool handlers ran. `agent_process` is where the
+    agent's own `step()` code ran: `subprocess` when `agentshield run` or the
+    service started it with `IsolatedAgent`, `inprocess` when a library
+    caller passed an agent object straight to the executor.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     boundary: Boundary
+    agent_process: AgentProcess = "inprocess"
     firejail_available: bool
     gvisor_available: bool
     network_denied: bool
@@ -147,17 +155,18 @@ def _child_launch(worker: str) -> tuple[list[str], dict[str, str]]:
     return command, env
 
 
-def inprocess_boundary() -> BoundaryReport:
+def inprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> BoundaryReport:
     """Describe the default boundary: no process isolation, registry-only dispatch."""
     return BoundaryReport(
         boundary="inprocess",
+        agent_process=agent_process,
         firejail_available=detect_firejail(),
         gvisor_available=detect_gvisor(),
         network_denied=False,
     )
 
 
-def subprocess_boundary() -> BoundaryReport:
+def subprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> BoundaryReport:
     """Describe the subprocess boundary `run_in_subprocess` will actually apply.
 
     `network_denied` follows `firejail_network_deny_available`: false on
@@ -167,10 +176,17 @@ def subprocess_boundary() -> BoundaryReport:
     """
     return BoundaryReport(
         boundary="subprocess",
+        agent_process=agent_process,
         firejail_available=detect_firejail(),
         gvisor_available=detect_gvisor(),
         network_denied=firejail_network_deny_available(),
     )
+
+
+def describe_boundary(report: BoundaryReport) -> str:
+    """One line a reviewer reads: tool boundary, agent process, network."""
+    network = "denied" if report.network_denied else "not denied"
+    return f"boundary: tools {report.boundary}, agent {report.agent_process}, network {network}"
 
 
 def run_in_subprocess(

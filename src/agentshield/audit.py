@@ -14,6 +14,7 @@ from pathlib import Path
 from agentshield.adapters.base import AgentUnderTest
 from agentshield.config import Settings
 from agentshield.sandbox.agent_process import IsolatedAgent
+from agentshield.sandbox.env import BoundaryReport, describe_boundary
 from agentshield.sandbox.executor import TraceIntegrityError, run_agent
 from agentshield.scenarios.loader import load_scenarios
 from agentshield.scenarios.runner import registry_for, scenario_state_for
@@ -132,9 +133,14 @@ async def collect_breaches(
     return breaches
 
 
-def summary_markdown(breaches: list[Breach], *, fail_on: str) -> str:
+def summary_markdown(
+    breaches: list[Breach], *, fail_on: str, boundary: BoundaryReport | None = None
+) -> str:
     """Markdown for the job log and the GitHub step summary."""
     lines = ["### Agentshield", ""]
+    if boundary is not None:
+        lines.append(f"Run {describe_boundary(boundary)}.")
+        lines.append("")
     if not breaches:
         lines.append(f"No rules failed at or above `{fail_on}`.")
     else:

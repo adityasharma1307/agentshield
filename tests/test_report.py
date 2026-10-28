@@ -15,6 +15,7 @@ from agentshield.report.schema import (
     scenario_pack_hash,
 )
 from agentshield.report.signing import ML_DSA_ALG, LocalSigner, sign, verify
+from agentshield.sandbox.env import inprocess_boundary
 from agentshield.trace import AgentTrace
 
 
@@ -42,6 +43,7 @@ def _body() -> ReportBody:
             )
         ],
         trace_refs=[TraceRef(scenario_id="exfil-email-canary", sha256="def")],
+        boundary=inprocess_boundary(),
     )
 
 

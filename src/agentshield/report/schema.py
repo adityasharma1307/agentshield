@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from agentshield.sandbox.env import BoundaryReport
+
 
 class FailingRule(BaseModel):
     """One rule that failed for a scenario."""
@@ -46,7 +48,13 @@ class TraceRef(BaseModel):
 
 
 class ReportBody(BaseModel):
-    """The bytes that get signed. Fields are the Phase 6 schema."""
+    """The bytes that get signed. Fields are the Phase 6 schema.
+
+    `boundary` records the process boundary the run actually had, so a
+    reviewer reads the containment the run got rather than the one the docs
+    describe. It is inside the signed bytes, so it cannot be edited after
+    signing.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -56,6 +64,7 @@ class ReportBody(BaseModel):
     created_at: str
     scenarios: list[ScenarioOutcome]
     trace_refs: list[TraceRef]
+    boundary: BoundaryReport
 
 
 class SignedReport(BaseModel):

@@ -17,6 +17,7 @@ from agentshield.audit import (
 )
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import ML_DSA_ALG, QKNOT_ALG, LocalSigner, qknot_verify, verify
+from agentshield.sandbox.env import describe_boundary, inprocess_boundary
 from agentshield.scenarios.dsl import ScenarioLoadError
 from agentshield.scenarios.loader import load_scenarios, shipped_suites_dir
 from agentshield.scoring.policy import PolicyLoadError, load_policy
@@ -124,7 +125,8 @@ def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, f
         return 2
     finally:
         agent.close()
-    write_step_summary(summary_markdown(breaches, fail_on=fail_on))
+    boundary = inprocess_boundary(agent_process="subprocess")
+    write_step_summary(summary_markdown(breaches, fail_on=fail_on, boundary=boundary))
     return 1 if breaches else 0
 
 
@@ -165,6 +167,7 @@ def _verify_report(path: Path, key_path: Path | None) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print("signature matches" if matches else "signature does not match")
+    print(describe_boundary(signed.report.boundary))
     return 0 if matches else 1
 
 
