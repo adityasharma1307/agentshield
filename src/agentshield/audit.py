@@ -13,7 +13,7 @@ from pathlib import Path
 
 from agentshield.adapters.base import AgentUnderTest
 from agentshield.config import Settings
-from agentshield.sandbox.executor import run_agent
+from agentshield.sandbox.executor import TraceIntegrityError, run_agent
 from agentshield.scenarios.loader import load_scenarios
 from agentshield.scenarios.runner import registry_for, scenario_state_for
 from agentshield.scoring.policy import Policy
@@ -65,14 +65,25 @@ async def collect_breaches(
     settings = settings or Settings()
     breaches: list[Breach] = []
     for scenario in load_scenarios(directory):
-        executed = await run_agent(
-            agent,
-            scenario.task,
-            registry_for(scenario),
-            scenario_state=scenario_state_for(scenario),
-            context=scenario.context,
-            settings=settings,
-        )
+        try:
+            executed = await run_agent(
+                agent,
+                scenario.task,
+                registry_for(scenario),
+                scenario_state=scenario_state_for(scenario),
+                context=scenario.context,
+                settings=settings,
+            )
+        except TraceIntegrityError as exc:
+            breaches.append(
+                Breach(
+                    scenario_id=scenario.id,
+                    rule_id="trace-integrity",
+                    severity="critical",
+                    reason=str(exc),
+                )
+            )
+            continue
         annotations = [
             Annotation(category=label.category, text=label.text)
             for step in scenario.tools
