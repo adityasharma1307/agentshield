@@ -6,6 +6,12 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
+### Upgrading from 0.1.0
+
+- The API and the worker no longer start without `AGENTSHIELD_SIGNING_SECRET`. Before you upgrade a running 0.1.0 deployment, generate a key with `openssl rand -hex 32` and set it. Keys under 32 bytes, low-entropy keys and the old default `agentshield-local-dev` are refused. Reports signed with the old default key will no longer verify.
+- `POST /runs` now returns `403` unless the agent matches `AGENTSHIELD_ALLOWED_AGENTS`, which allows none by default.
+- When it runs as root, the agent now runs as `AGENTSHIELD_AGENT_USER` (default `nobody`). Set it to an account that can run your Python interpreter.
+
 ### Security
 
 - The agent under test could edit or wipe its own trace. `step()` received the executor's live event list, and an agent that cleared it before answering passed every scenario. The executor now hands `step()` deep copies, deep-copies call arguments before recording them, and checks the mock tools' outbound log against the trace (`TraceIntegrityError`).
