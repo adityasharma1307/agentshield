@@ -313,6 +313,16 @@
             "title": "Agent Process",
             "default": "inprocess"
           },
+          "agent_separate_user": {
+            "type": "boolean",
+            "title": "Agent Separate User",
+            "default": false
+          },
+          "scorer_inspection_denied": {
+            "type": "boolean",
+            "title": "Scorer Inspection Denied",
+            "default": false
+          },
           "firejail_available": {
             "type": "boolean",
             "title": "Firejail Available"
@@ -335,7 +345,7 @@
           "network_denied"
         ],
         "title": "BoundaryReport",
-        "description": "What a run's process boundary actually was, stated plainly.\n\n`boundary` is where tool handlers ran. `agent_process` is where the\nagent's own `step()` code ran: `subprocess` when `agentshield run` or the\nservice started it with `IsolatedAgent`, `inprocess` when a library\ncaller passed an agent object straight to the executor."
+        "description": "What a run's process boundary actually was, stated plainly.\n\n`boundary` is where tool handlers ran. `agent_process` is where the\nagent's own `step()` code ran: `subprocess` when `agentshield run` or the\nservice started it with `IsolatedAgent`, `inprocess` when a library\ncaller passed an agent object straight to the executor.\n`agent_separate_user` is true only when that child actually ran under a\ndifferent uid (the parent was root). `scorer_inspection_denied` is true\nwhen the scoring process made itself non-dumpable, so a same-user child\ncan't read its `/proc/<pid>/environ` or memory."
       },
       "DiffBody": {
         "properties": {

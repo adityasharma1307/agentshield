@@ -16,7 +16,9 @@ The agent object is never given the registry. Only `agentshield.sandbox.executor
 
 `history` is a tuple of deep copies of the recorded events, and a call's arguments are deep-copied before they are recorded, so an agent cannot edit or delete the trace it is scored on. Before `run_agent` returns, every outbound call the mock handlers logged in `scenario_state["outbound"]` must match a `tool_call` in the trace, or it raises `TraceIntegrityError`.
 
-`agentshield run`, the Action, and the service do not import the agent into this process. `IsolatedAgent` (`agentshield.sandbox.agent_process`) runs it in a child Python process and sends each `step()` request as JSON. The child gets the parent's environment minus `AGENTSHIELD_*`. It is a separate interpreter, not a sandbox: it can read files and use the network.
+`agentshield run`, the Action, and the service do not import the agent into this process. `IsolatedAgent` (`agentshield.sandbox.agent_process`) runs it in a child Python process and sends each `step()` request as JSON. The child gets the parent's environment minus `AGENTSHIELD_*`. It is a separate interpreter, not a sandbox: it can use the network.
+
+**Which user the agent runs as.** When the parent runs as root on POSIX, `IsolatedAgent` starts the child as `AGENTSHIELD_AGENT_USER` (default `nobody`), with that account's uid and gid and no supplementary groups. If that account can't run the Python interpreter or read the agent's code, the run fails with `AgentProcessError` and names the variable. It never falls back to root. In every other case, including the shipped Docker image (uid 10001) and a developer shell, the child runs as the same user and can read whatever that user can read. Each signed report records which case it was in `BoundaryReport.agent_separate_user`. `scorer_inspection_denied` records whether the scoring process made itself non-dumpable (Linux only), which stops a same-user child from reading its `/proc/<pid>/environ` or memory. `agentshield verify` prints both.
 
 ## Tools
 

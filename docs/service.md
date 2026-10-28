@@ -43,7 +43,7 @@ Either gives 64 hex characters (256 random bits). Store it in your secret manage
 
 Agentshield also refuses a key of 32 bytes or more that looks hand-made: under about 80 bits by byte frequency, mostly runs of equal or adjacent characters (`aaaa`, `abcd`), or an 8-character stretch that repeats (`password-password-…`). These checks catch typed patterns. They can't catch a long passphrase of distinct words, so use a generated key.
 
-The worker reads the key and deletes it from its environment. Only the signer keeps it. The agent runs in a child process with no `AGENTSHIELD_*` variables. On Linux the worker also marks itself non-dumpable, so a child running as the same user can't read the key from `/proc/<worker>/environ` or from the worker's memory. That doesn't stop root, or an agent that can read the files the key came from. For a hostile agent, run it as another user or in its own container.
+The worker reads the key and deletes it from its environment. Only the signer keeps it. The agent runs in a child process with no `AGENTSHIELD_*` variables. On Linux the worker also marks itself non-dumpable, so a child running as the same user can't read the key from `/proc/<worker>/environ` or from the worker's memory. That doesn't stop root, or an agent that can read the files the key came from. For a hostile agent, start the worker as root with `AGENTSHIELD_AGENT_USER` set to an unprivileged account that can run the interpreter. The agent child then gets that uid, and the report says `agent uid separate`. Otherwise run the agent in its own container.
 
 The signed report stores a sha256 of each scenario trace. The service database also stores the trace JSON so the dashboard can show arguments and results.
 

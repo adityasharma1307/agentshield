@@ -2,7 +2,9 @@
 
 import asyncio
 import json
+import os
 import secrets
+import sys
 from pathlib import Path
 
 import pytest
@@ -13,7 +15,7 @@ from agentshield.cli import main
 from agentshield.config import Settings
 from agentshield.report.render import render_html
 from agentshield.report.schema import ReportBody, SignedReport
-from agentshield.sandbox.env import BoundaryReport, inprocess_boundary
+from agentshield.sandbox.env import BoundaryReport
 from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.app import create_app
 from agentshield.service.db import make_engine, make_session_factory, upgrade_database
@@ -75,7 +77,9 @@ def test_service_report_records_the_boundary_it_ran_with(
 ) -> None:
     signed, secret = _signed_report(tmp_path)
     boundary = signed.report.boundary
-    assert boundary == inprocess_boundary(agent_process="subprocess")
+    assert boundary.agent_process == "subprocess"
+    assert boundary.agent_separate_user is (os.name == "posix" and os.geteuid() == 0)
+    assert boundary.scorer_inspection_denied is sys.platform.startswith("linux")
     assert boundary.boundary == "inprocess"
     assert boundary.network_denied is False
 

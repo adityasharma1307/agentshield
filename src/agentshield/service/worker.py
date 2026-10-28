@@ -16,7 +16,12 @@ from arq.connections import RedisSettings
 from sqlalchemy.orm import Session, sessionmaker
 
 from agentshield.audit import load_isolated_agent
-from agentshield.config import Settings, load_settings, require_signing_secret
+from agentshield.config import (
+    Settings,
+    deny_same_user_inspection,
+    load_settings,
+    require_signing_secret,
+)
 from agentshield.report.schema import (
     FailingRule,
     ReportBody,
@@ -137,7 +142,9 @@ async def _build(
     outcomes: list[ScenarioOutcome] = []
     rows: list[ScenarioResult] = []
     refs: list[TraceRef] = []
+    inspection_denied = deny_same_user_inspection()
     with load_isolated_agent(agent_entry) as agent:
+        separate_user = agent.separate_user
         executions = [
             (
                 scenario,
@@ -203,7 +210,11 @@ async def _build(
         created_at=created_at,
         scenarios=outcomes,
         trace_refs=[ReportTraceRef(scenario_id=ref.scenario_id, sha256=ref.sha256) for ref in refs],
-        boundary=inprocess_boundary(agent_process="subprocess"),
+        boundary=inprocess_boundary(
+            agent_process="subprocess",
+            agent_separate_user=separate_user,
+            scorer_inspection_denied=inspection_denied,
+        ),
     )
     signature = signer.sign(canonical_bytes(body))
     signed = SignedReport(report=body, signature=signature, algorithm="local")

@@ -37,12 +37,18 @@ class BoundaryReport(BaseModel):
     agent's own `step()` code ran: `subprocess` when `agentshield run` or the
     service started it with `IsolatedAgent`, `inprocess` when a library
     caller passed an agent object straight to the executor.
+    `agent_separate_user` is true only when that child actually ran under a
+    different uid (the parent was root). `scorer_inspection_denied` is true
+    when the scoring process made itself non-dumpable, so a same-user child
+    can't read its `/proc/<pid>/environ` or memory.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     boundary: Boundary
     agent_process: AgentProcess = "inprocess"
+    agent_separate_user: bool = False
+    scorer_inspection_denied: bool = False
     firejail_available: bool
     gvisor_available: bool
     network_denied: bool
@@ -155,18 +161,30 @@ def _child_launch(worker: str) -> tuple[list[str], dict[str, str]]:
     return command, env
 
 
-def inprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> BoundaryReport:
+def inprocess_boundary(
+    *,
+    agent_process: AgentProcess = "inprocess",
+    agent_separate_user: bool = False,
+    scorer_inspection_denied: bool = False,
+) -> BoundaryReport:
     """Describe the default boundary: no process isolation, registry-only dispatch."""
     return BoundaryReport(
         boundary="inprocess",
         agent_process=agent_process,
+        agent_separate_user=agent_separate_user,
+        scorer_inspection_denied=scorer_inspection_denied,
         firejail_available=detect_firejail(),
         gvisor_available=detect_gvisor(),
         network_denied=False,
     )
 
 
-def subprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> BoundaryReport:
+def subprocess_boundary(
+    *,
+    agent_process: AgentProcess = "inprocess",
+    agent_separate_user: bool = False,
+    scorer_inspection_denied: bool = False,
+) -> BoundaryReport:
     """Describe the subprocess boundary `run_in_subprocess` will actually apply.
 
     `network_denied` follows `firejail_network_deny_available`: false on
@@ -177,6 +195,8 @@ def subprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> Boundar
     return BoundaryReport(
         boundary="subprocess",
         agent_process=agent_process,
+        agent_separate_user=agent_separate_user,
+        scorer_inspection_denied=scorer_inspection_denied,
         firejail_available=detect_firejail(),
         gvisor_available=detect_gvisor(),
         network_denied=firejail_network_deny_available(),
@@ -184,9 +204,14 @@ def subprocess_boundary(*, agent_process: AgentProcess = "inprocess") -> Boundar
 
 
 def describe_boundary(report: BoundaryReport) -> str:
-    """One line a reviewer reads: tool boundary, agent process, network."""
+    """One line a reviewer reads: tools, agent process, network, agent uid, scorer."""
     network = "denied" if report.network_denied else "not denied"
-    return f"boundary: tools {report.boundary}, agent {report.agent_process}, network {network}"
+    uid = "separate" if report.agent_separate_user else "same"
+    inspection = "denied" if report.scorer_inspection_denied else "not denied"
+    return (
+        f"boundary: tools {report.boundary}, agent {report.agent_process}, network {network}, "
+        f"agent uid {uid}, scorer inspection {inspection}"
+    )
 
 
 def run_in_subprocess(

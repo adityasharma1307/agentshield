@@ -19,6 +19,7 @@ from agentshield.audit import (
 from agentshield.config import deny_same_user_inspection
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import ML_DSA_ALG, QKNOT_ALG, LocalSigner, qknot_verify, verify
+from agentshield.sandbox.agent_process import AgentProcessError
 from agentshield.sandbox.env import describe_boundary, inprocess_boundary
 from agentshield.scenarios.dsl import ScenarioLoadError
 from agentshield.scenarios.loader import load_scenarios, shipped_suites_dir
@@ -115,11 +116,18 @@ def main(argv: list[str] | None = None) -> int:
 def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, fail_on: str) -> int:
     suite = shipped_suites_dir() if suite is None else suite
     policy_file = default_policy_path() if policy_path is None else policy_path
-    _shield_this_process()
+    inspection_denied = _shield_this_process()
     try:
         policy = load_policy(policy_file)
         agent = load_isolated_agent(agent_entry)
-    except (ScenarioLoadError, PolicyLoadError, ValueError, TypeError, ImportError) as exc:
+    except (
+        ScenarioLoadError,
+        PolicyLoadError,
+        ValueError,
+        TypeError,
+        ImportError,
+        AgentProcessError,
+    ) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     try:
@@ -129,7 +137,11 @@ def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, f
         return 2
     finally:
         agent.close()
-    boundary = inprocess_boundary(agent_process="subprocess")
+    boundary = inprocess_boundary(
+        agent_process="subprocess",
+        agent_separate_user=agent.separate_user,
+        scorer_inspection_denied=inspection_denied,
+    )
     write_step_summary(summary_markdown(breaches, fail_on=fail_on, boundary=boundary))
     return 1 if breaches else 0
 

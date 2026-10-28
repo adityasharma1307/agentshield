@@ -146,6 +146,10 @@ export interface components {
          *     agent's own `step()` code ran: `subprocess` when `agentshield run` or the
          *     service started it with `IsolatedAgent`, `inprocess` when a library
          *     caller passed an agent object straight to the executor.
+         *     `agent_separate_user` is true only when that child actually ran under a
+         *     different uid (the parent was root). `scorer_inspection_denied` is true
+         *     when the scoring process made itself non-dumpable, so a same-user child
+         *     can't read its `/proc/<pid>/environ` or memory.
          */
         BoundaryReport: {
             /**
@@ -159,6 +163,16 @@ export interface components {
              * @enum {string}
              */
             agent_process: "inprocess" | "subprocess";
+            /**
+             * Agent Separate User
+             * @default false
+             */
+            agent_separate_user: boolean;
+            /**
+             * Scorer Inspection Denied
+             * @default false
+             */
+            scorer_inspection_denied: boolean;
             /** Firejail Available */
             firejail_available: boolean;
             /** Gvisor Available */

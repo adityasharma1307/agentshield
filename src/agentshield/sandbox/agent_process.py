@@ -12,9 +12,16 @@ Nothing the child does to its own copy of `agentshield` reaches the parent.
 The child gets the parent's environment minus every `AGENTSHIELD_*` variable
 (the signing secret, the database and Redis URLs). Agent credentials such as
 `OPENAI_API_KEY` are still passed, because a real agent needs them. The child
-is an ordinary process: it can read files the operator's user can read and it
-can reach the network. This is a boundary against tampering with the harness
-in memory, not a sandbox for hostile code.
+is an ordinary process: it can reach the network, and unless it runs as
+another user it can read files the operator's user can read. This is a
+boundary against tampering with the harness in memory, not a sandbox for
+hostile code.
+
+When the parent runs as root on POSIX, the child is started as
+`AGENTSHIELD_AGENT_USER` (default `nobody`) with no supplementary groups, so
+it can't read the parent's `/proc` entries or files only the operator's user
+can read. Otherwise the child runs as the same user and `separate_user` is
+false; the signed report's `BoundaryReport.agent_separate_user` says which.
 """
 
 from __future__ import annotations
@@ -30,11 +37,18 @@ from collections.abc import Mapping, Sequence
 from types import TracebackType
 from typing import IO, Any
 
+try:
+    import pwd
+except ImportError:  # Windows has no uids to switch to.
+    pwd = None  # type: ignore[assignment]
+
 from agentshield.adapters.base import AgentUnderTest
 from agentshield.trace import AgentStep, ToolSpec, TraceEvent
 
 _WORKER_MODULE = "agentshield.sandbox._agent_worker"
 _STRIPPED_PREFIX = "AGENTSHIELD_"
+AGENT_USER_ENV = "AGENTSHIELD_AGENT_USER"
+DEFAULT_AGENT_USER = "nobody"
 
 
 class AgentProcessError(RuntimeError):
@@ -53,6 +67,31 @@ def agent_child_environment() -> dict[str, str]:
     return env
 
 
+def agent_user_launch() -> tuple[dict[str, Any], str | None, bool]:
+    """`Popen` keyword arguments that drop the child to another uid.
+
+    Returns `(kwargs, home, separate)`. `separate` is true only when this
+    process is root on POSIX and `AGENTSHIELD_AGENT_USER` (default `nobody`)
+    names an existing non-root account. In every other case the kwargs are
+    empty and the child runs as this process's user.
+    """
+    if pwd is None or os.geteuid() != 0:
+        return {}, None, False
+    name = os.environ.get(AGENT_USER_ENV) or DEFAULT_AGENT_USER
+    try:
+        record = pwd.getpwnam(name)
+    except KeyError:
+        return {}, None, False
+    if record.pw_uid == 0:
+        return {}, None, False
+    kwargs: dict[str, Any] = {
+        "user": record.pw_uid,
+        "group": record.pw_gid,
+        "extra_groups": [],
+    }
+    return kwargs, record.pw_dir, True
+
+
 class IsolatedAgent(AgentUnderTest):
     """An `AgentUnderTest` whose `step()` runs in a child process.
 
@@ -67,20 +106,36 @@ class IsolatedAgent(AgentUnderTest):
         self.step_timeout_s = step_timeout_s
         self._process: subprocess.Popen[str] | None = None
         self._lock = threading.Lock()
+        self.separate_user = False
 
     def start(self) -> None:
         """Start the child and import the agent there."""
         if self._process is not None and self._process.poll() is None:
             return
-        process = subprocess.Popen(
-            [sys.executable, "-m", _WORKER_MODULE, self.entry],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=None,
-            text=True,
-            encoding="utf-8",
-            env=agent_child_environment(),
-        )
+        user_kwargs, home, separate = agent_user_launch()
+        env = agent_child_environment()
+        if home is not None:
+            env["HOME"] = home
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-m", _WORKER_MODULE, self.entry],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=None,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                **user_kwargs,
+            )
+        except OSError as exc:
+            if not separate:
+                raise AgentProcessError(f"could not start the agent process: {exc}") from exc
+            raise AgentProcessError(
+                f"could not start the agent as uid {user_kwargs['user']}: {exc}. "
+                f"Set {AGENT_USER_ENV} to an account that can run {sys.executable} "
+                "and read the agent's code."
+            ) from exc
+        self.separate_user = separate
         self._process = process
         reply = self._read(process)
         if reply.get("ready") is True:
