@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_call:  # release.yml runs these checks before it publishes
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
