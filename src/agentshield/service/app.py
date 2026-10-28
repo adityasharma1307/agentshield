@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from agentshield import __version__
 from agentshield.config import Settings, load_settings, require_signing_secret
 from agentshield.report.schema import SignedReport, scenario_pack_hash
+from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.db import make_engine, make_session_factory
 from agentshield.service.models import AuditRun, ScenarioResult, TraceRef
 from agentshield.service.queue import ArqQueue, MemoryQueue, RunQueue
@@ -127,8 +128,13 @@ def create_app(
     queue: RunQueue | None = None,
     session_factory: sessionmaker[Session] | None = None,
     database: bool = True,
+    allowlist: RunAllowlist | None = None,
 ) -> FastAPI:
     """Build the API. Pass `database=False` for the health and version checks.
+
+    `allowlist` limits the agents and paths `POST /runs` accepts. The default
+    reads `RunAllowlist.from_env()`, which allows no agent until
+    `AGENTSHIELD_ALLOWED_AGENTS` names one.
 
     The default queue records ids in memory. Pass `ArqQueue` to publish them
     to Redis for `arq agentshield.service.worker.WorkerSettings`.
@@ -151,6 +157,7 @@ def create_app(
     app.state.settings = resolved
     app.state.queue = queue
     app.state.session_factory = session_factory
+    app.state.allowlist = allowlist if allowlist is not None else RunAllowlist.from_env()
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -194,7 +201,7 @@ def create_app(
 
     @app.post("/runs", status_code=202)
     async def create_run(body: RunCreate, request: Request) -> RunAccepted:
-        suite_path, policy_path, suite_hash, policy_hash = _paths(body)
+        suite_path, policy_path, suite_hash, policy_hash = _paths(body, request.app.state.allowlist)
         factory = _factory(request)
         run = AuditRun(
             id=uuid.uuid4().hex,
@@ -272,12 +279,18 @@ def create_app(
     return app
 
 
-def _paths(body: RunCreate) -> tuple[Path, Path, str, str]:
+def _paths(body: RunCreate, allowlist: RunAllowlist) -> tuple[Path, Path, str, str]:
     module_name, separator, attr = body.agent.partition(":")
     if separator != ":" or not module_name or not attr or ":" in attr:
         raise HTTPException(status_code=400, detail="agent must be module:attribute")
+    if not allowlist.allows_agent(body.agent):
+        raise HTTPException(status_code=403, detail="agent is not in AGENTSHIELD_ALLOWED_AGENTS")
     suite_path = Path(body.suite).expanduser().resolve()
     policy_path = Path(body.policy).expanduser().resolve()
+    if not allowlist.allows_path(suite_path):
+        raise HTTPException(status_code=403, detail="suite is outside AGENTSHIELD_ALLOWED_ROOTS")
+    if not allowlist.allows_path(policy_path):
+        raise HTTPException(status_code=403, detail="policy is outside AGENTSHIELD_ALLOWED_ROOTS")
     if not suite_path.is_dir():
         raise HTTPException(status_code=400, detail=f"suite directory not found: {body.suite}")
     if not policy_path.is_file():

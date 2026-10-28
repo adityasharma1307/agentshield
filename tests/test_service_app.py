@@ -15,6 +15,7 @@ from agentshield.config import Settings
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import LocalSigner
 from agentshield.service import worker as worker_mod
+from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.app import create_app
 from agentshield.service.db import make_engine, make_session_factory, upgrade_database
 from agentshield.service.queue import MemoryQueue
@@ -227,7 +228,8 @@ def _client(tmp_path: Path) -> tuple[TestClient, MemoryQueue, dict[str, Any], st
     queue = MemoryQueue()
     secret = secrets.token_hex(32)
     settings = Settings(database_url=url, signing_secret=SecretStr(secret))
-    app = create_app(settings, queue=queue, session_factory=factory)
+    allowlist = RunAllowlist(agents=("examples.*", "crashmod:agent"), roots=(tmp_path.resolve(),))
+    app = create_app(settings, queue=queue, session_factory=factory, allowlist=allowlist)
     ctx: dict[str, Any] = {"settings": settings, "session_factory": factory}
     return TestClient(app), queue, ctx, secret
 

@@ -14,6 +14,7 @@ from agentshield.config import Settings
 from agentshield.report.render import render_html
 from agentshield.report.schema import ReportBody, SignedReport
 from agentshield.sandbox.env import BoundaryReport, inprocess_boundary
+from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.app import create_app
 from agentshield.service.db import make_engine, make_session_factory, upgrade_database
 from agentshield.service.queue import MemoryQueue
@@ -48,7 +49,8 @@ def _signed_report(tmp_path: Path) -> tuple[SignedReport, str]:
     factory = make_session_factory(make_engine(url))
     secret = secrets.token_hex(32)
     settings = Settings(database_url=url, signing_secret=SecretStr(secret))
-    app = create_app(settings, queue=MemoryQueue(), session_factory=factory)
+    allowlist = RunAllowlist(agents=("examples.*",), roots=(tmp_path.resolve(),))
+    app = create_app(settings, queue=MemoryQueue(), session_factory=factory, allowlist=allowlist)
     suite = tmp_path / "suite"
     suite.mkdir()
     (suite / "exfil.yaml").write_text(_SUITE, encoding="utf-8")

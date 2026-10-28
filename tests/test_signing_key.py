@@ -22,6 +22,7 @@ from agentshield.report.signing import (
     check_local_secret,
 )
 from agentshield.service import worker as worker_mod
+from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.app import create_app
 from agentshield.service.db import make_engine, make_session_factory, upgrade_database
 from agentshield.service.queue import MemoryQueue
@@ -169,6 +170,7 @@ def test_run_without_a_key_fails_and_is_never_signed(tmp_path: Path) -> None:
         Settings(database_url=url, signing_secret=SecretStr(secrets.token_hex(32))),
         queue=MemoryQueue(),
         session_factory=factory,
+        allowlist=RunAllowlist(agents=("examples.*",), roots=(tmp_path.resolve(),)),
     )
     ctx: dict[str, Any] = {"settings": Settings(database_url=url), "session_factory": factory}
     suite, policy = _files(tmp_path)
@@ -206,6 +208,7 @@ def _probe_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[str, di
             Settings(database_url=url, signing_secret=SecretStr(secrets.token_hex(32))),
             queue=MemoryQueue(),
             session_factory=ctx["session_factory"],
+            allowlist=RunAllowlist(agents=("keyprobe:agent",), roots=(tmp_path.resolve(),)),
         )
         with TestClient(app) as client:
             run_id = client.post(

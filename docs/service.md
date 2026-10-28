@@ -20,7 +20,7 @@ upgrade_database("sqlite:///agentshield.db")
 | --- | --- | --- |
 | `GET` | `/health` | `{"status": "ok"}`. Does not open the database. |
 | `GET` | `/version` | The package version. Does not open the database. |
-| `POST` | `/runs` | `202` and `{"id", "status": "queued"}`. Body fields are `suite` (a directory), `agent` (`module:attribute`), and `policy` (a file). |
+| `POST` | `/runs` | `202` and `{"id", "status": "queued"}`. Body fields are `suite` (a directory), `agent` (`module:attribute`), and `policy` (a file). `403` when the agent or a path is not allowlisted (see below). |
 | `GET` | `/runs` | Newest runs first. Each row has id, status, time, agent, and how many scenarios passed. |
 | `GET` | `/runs/{id}` | `queued`, `running`, `succeeded`, or `failed`. |
 | `GET` | `/runs/{id}/report` | The signed report when the status is `succeeded`. Otherwise `409`. |
@@ -32,6 +32,19 @@ The report signature is HMAC, algorithm `local`. It is not ML-DSA. The key comes
 The worker reads the key and deletes it from its environment. Only the signer keeps it. The agent runs in a child process with no `AGENTSHIELD_*` variables. On Linux the worker also marks itself non-dumpable, so a child running as the same user can't read the key from `/proc/<worker>/environ` or from the worker's memory. That doesn't stop root, or an agent that can read the files the key came from. For a hostile agent, run it as another user or in its own container.
 
 The signed report stores a sha256 of each scenario trace. The service database also stores the trace JSON so the dashboard can show arguments and results.
+
+## What a run may name
+
+A run imports `agent` as code and reads `suite` and `policy` from disk, so `POST /runs` checks both against an allowlist before it stores anything:
+
+- `AGENTSHIELD_ALLOWED_AGENTS`: comma-separated. An entry is an exact `module:attribute` or `package.*`. Unset or empty allows no agent, so a fresh service answers `403` until you name one.
+- `AGENTSHIELD_ALLOWED_ROOTS`: directories separated by `os.pathsep`. `suite` and `policy` must resolve (symlinks followed) inside one of them. Unset means the installed `agentshield` package, which holds the shipped suites and the default policy.
+
+`create_app(allowlist=RunAllowlist(...))` sets the same thing in code. The API has no authentication of its own; keep it on a loopback or private interface.
+
+## Docker Compose
+
+`docker/compose.yaml` needs `POSTGRES_PASSWORD` and `REDIS_PASSWORD` in the environment; there are no defaults, and compose refuses to start without them. Postgres and Redis publish no host ports. The API publishes `127.0.0.1:8000` only, and Jaeger (debug profile) publishes its ports on `127.0.0.1` only.
 
 ## Worker
 

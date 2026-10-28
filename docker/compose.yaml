@@ -2,20 +2,31 @@
 # Jaeger stays on the debug profile: `docker compose --profile debug up`.
 # Set a signing key first; there is no default and the API will not start
 # without one: `export AGENTSHIELD_SIGNING_SECRET=$(openssl rand -hex 32)`.
+#
+# Required before `up` (no defaults, compose refuses to start without them):
+#   POSTGRES_PASSWORD, REDIS_PASSWORD
+# Use URL-safe values (letters, digits, - and _), because both are embedded in
+# connection URLs below.
+# Optional: AGENTSHIELD_ALLOWED_AGENTS (comma-separated module:attribute or
+# package.*) and AGENTSHIELD_ALLOWED_ROOTS. With no agents allowed, POST /runs
+# answers 403.
+#
+# Only the API (and Jaeger, on the debug profile) publish ports, and only on
+# 127.0.0.1. Postgres and Redis are reachable on the compose network only.
 services:
   postgres:
     image: postgres:16
     environment:
       POSTGRES_USER: agentshield
-      POSTGRES_PASSWORD: agentshield
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: agentshield
-    ports:
-      - "5432:5432"
 
   redis:
     image: redis:7
-    ports:
-      - "6379:6379"
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD}
 
   api:
     build:
@@ -25,8 +36,10 @@ services:
       - postgres
       - redis
     environment:
-      AGENTSHIELD_DATABASE_URL: postgresql+psycopg://agentshield:agentshield@postgres:5432/agentshield
-      AGENTSHIELD_REDIS_URL: redis://redis:6379/0
+      AGENTSHIELD_DATABASE_URL: postgresql+psycopg://agentshield:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/agentshield
+      AGENTSHIELD_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+      AGENTSHIELD_ALLOWED_AGENTS: ${AGENTSHIELD_ALLOWED_AGENTS:-}
+      AGENTSHIELD_ALLOWED_ROOTS: ${AGENTSHIELD_ALLOWED_ROOTS:-}
       AGENTSHIELD_SIGNING_SECRET: ${AGENTSHIELD_SIGNING_SECRET:?set AGENTSHIELD_SIGNING_SECRET to a random key, e.g. openssl rand -hex 32}
     entrypoint: ["python", "-m", "uvicorn"]
     command:
@@ -37,15 +50,15 @@ services:
       - --port
       - "8000"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     profiles:
       - debug
     ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
