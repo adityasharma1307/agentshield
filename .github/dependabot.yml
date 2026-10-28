@@ -42,3 +42,8 @@ updates:
       frontend-minor-patch:
         update-types: [minor, patch]
     labels: [dependencies, frontend]
+    # openapi-typescript 7.x requires TypeScript 5 (peer `^5.x`). Remove this
+    # once openapi-typescript supports TypeScript 7.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
