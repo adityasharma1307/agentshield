@@ -15,7 +15,7 @@ from typing import Any, ClassVar
 from arq.connections import RedisSettings
 from sqlalchemy.orm import Session, sessionmaker
 
-from agentshield.audit import load_agent
+from agentshield.audit import load_isolated_agent
 from agentshield.config import Settings, load_settings
 from agentshield.report.schema import (
     FailingRule,
@@ -115,20 +115,26 @@ async def _build(
     if _sha256(policy_path) != policy_hash:
         raise RuntimeError("policy changed after the run was queued")
 
-    agent = load_agent(agent_entry)
     policy = load_policy(policy_path)
     outcomes: list[ScenarioOutcome] = []
     rows: list[ScenarioResult] = []
     refs: list[TraceRef] = []
-    for scenario in load_scenarios(suite_path):
-        executed = await run_agent(
-            agent,
-            scenario.task,
-            registry_for(scenario),
-            scenario_state=scenario_state_for(scenario),
-            context=scenario.context,
-            settings=settings,
-        )
+    with load_isolated_agent(agent_entry) as agent:
+        executions = [
+            (
+                scenario,
+                await run_agent(
+                    agent,
+                    scenario.task,
+                    registry_for(scenario),
+                    scenario_state=scenario_state_for(scenario),
+                    context=scenario.context,
+                    settings=settings,
+                ),
+            )
+            for scenario in load_scenarios(suite_path)
+        ]
+    for scenario, executed in executions:
         annotations = [
             Annotation(category=label.category, text=label.text)
             for step in scenario.tools

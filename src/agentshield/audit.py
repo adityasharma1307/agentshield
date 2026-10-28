@@ -13,6 +13,7 @@ from pathlib import Path
 
 from agentshield.adapters.base import AgentUnderTest
 from agentshield.config import Settings
+from agentshield.sandbox.agent_process import IsolatedAgent
 from agentshield.sandbox.executor import TraceIntegrityError, run_agent
 from agentshield.scenarios.loader import load_scenarios
 from agentshield.scenarios.runner import registry_for, scenario_state_for
@@ -34,15 +35,38 @@ class Breach:
 
 
 def load_agent(entry: str) -> AgentUnderTest:
-    """Import `module:attribute` and require an `AgentUnderTest`."""
-    module_name, separator, attr = entry.partition(":")
-    if separator != ":" or not module_name or not attr or ":" in attr:
-        raise ValueError(f"agent entry must be module:attribute, got {entry!r}")
+    """Import `module:attribute` into this process and require an `AgentUnderTest`.
+
+    The agent then shares this process with the scorer. Use
+    `load_isolated_agent` when the agent is not trusted.
+    """
+    module_name, attr = _split_entry(entry)
     module = importlib.import_module(module_name)
     agent = getattr(module, attr, None)
     if not isinstance(agent, AgentUnderTest):
         raise TypeError(f"{entry} is not an AgentUnderTest")
     return agent
+
+
+def load_isolated_agent(entry: str) -> IsolatedAgent:
+    """Start `entry` in a child process and return the proxy the executor drives.
+
+    `agentshield run` and the service use this, so the agent's code never runs
+    in the process that holds the trace, the scorer, and the signing key.
+    Raises the same `ValueError`, `ImportError`, or `TypeError` as `load_agent`.
+    Call `close()` on the result when the run is done.
+    """
+    _split_entry(entry)
+    agent = IsolatedAgent(entry)
+    agent.start()
+    return agent
+
+
+def _split_entry(entry: str) -> tuple[str, str]:
+    module_name, separator, attr = entry.partition(":")
+    if separator != ":" or not module_name or not attr or ":" in attr:
+        raise ValueError(f"agent entry must be module:attribute, got {entry!r}")
+    return module_name, attr
 
 
 def default_policy_path() -> Path:

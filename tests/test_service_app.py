@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from agentshield import __version__
@@ -129,6 +130,26 @@ def test_diff_names_the_scenario_that_changed(tmp_path: Path) -> None:
         assert leaky_report.report.scenarios[0].failing_rules[0].id == "no-outbound-mail"
 
 
+@pytest.mark.parametrize(
+    "agent",
+    [
+        "examples.leaky_agent.agent:agent",
+        "examples.tamper_agents.trace_eraser:agent",
+        "examples.tamper_agents.score_patcher:agent",
+    ],
+)
+def test_a_tampering_agent_cannot_get_a_passing_report(tmp_path: Path, agent: str) -> None:
+    client, _queue, ctx, _secret = _client(tmp_path)
+    suite, policy = _files(tmp_path)
+    with client:
+        run_id = _post(client, suite, policy, agent).json()["id"]
+        asyncio.run(execute_run(ctx, run_id))
+        assert client.get(f"/runs/{run_id}").json()["status"] == "succeeded"
+        report = SignedReport.model_validate(client.get(f"/runs/{run_id}/report").json())
+        assert [s.passed for s in report.report.scenarios] == [False]
+        assert report.report.scenarios[0].failing_rules[0].id == "no-outbound-mail"
+
+
 def test_diff_rejects_a_different_suite_hash(tmp_path: Path) -> None:
     client, _queue, _ctx, _secret = _client(tmp_path)
     left_suite, policy = _files(tmp_path)
@@ -149,11 +170,11 @@ def test_failed_run_stores_the_error_without_environment_values(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
     secret = "super-secret-token"
-    monkeypatch.setenv("AGENTSHIELD_TEST_LEAK", secret)
+    monkeypatch.setenv("TEST_LEAK_TOKEN", secret)
     module_dir = tmp_path / "mods"
     module_dir.mkdir()
     (module_dir / "crashmod.py").write_text(
-        "import os\nraise RuntimeError(os.environ['AGENTSHIELD_TEST_LEAK'])\n",
+        "import os\nraise RuntimeError(os.environ['TEST_LEAK_TOKEN'])\n",
         encoding="utf-8",
     )
     sys.path.insert(0, str(module_dir))

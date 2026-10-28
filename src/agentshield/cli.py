@@ -11,7 +11,7 @@ from agentshield import __version__
 from agentshield.audit import (
     collect_breaches,
     default_policy_path,
-    load_agent,
+    load_isolated_agent,
     summary_markdown,
     write_step_summary,
 )
@@ -112,12 +112,18 @@ def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, f
     suite = shipped_suites_dir() if suite is None else suite
     policy_file = default_policy_path() if policy_path is None else policy_path
     try:
-        agent = load_agent(agent_entry)
         policy = load_policy(policy_file)
-        breaches = asyncio.run(collect_breaches(suite, agent, policy, fail_on=fail_on))
+        agent = load_isolated_agent(agent_entry)
     except (ScenarioLoadError, PolicyLoadError, ValueError, TypeError, ImportError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    try:
+        breaches = asyncio.run(collect_breaches(suite, agent, policy, fail_on=fail_on))
+    except (ScenarioLoadError, ValueError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    finally:
+        agent.close()
     write_step_summary(summary_markdown(breaches, fail_on=fail_on))
     return 1 if breaches else 0
 
