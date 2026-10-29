@@ -6,7 +6,9 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
-### Upgrading from 0.1.0
+0.1.0 has security holes: the agent under test could wipe its own trace or patch the scorer, the default signing key was public, and the Compose stack was exposed on every interface. Everyone on 0.1.0 should upgrade. The details are under Security below.
+
+### Upgrading from 0.1.0 (breaking)
 
 - The API and the worker no longer start without `AGENTSHIELD_SIGNING_SECRET`. Before you upgrade a running 0.1.0 deployment, generate a key with `openssl rand -hex 32` and set it. Keys under 32 bytes, low-entropy keys and the old default `agentshield-local-dev` are refused. Reports signed with the old default key will no longer verify.
 - `POST /runs` now returns `403` unless the agent matches `AGENTSHIELD_ALLOWED_AGENTS`, which allows none by default.
