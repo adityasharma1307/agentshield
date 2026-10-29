@@ -83,7 +83,19 @@ path = "src/agentshield/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentshield"]
 
+# The sdist ships only what builds and tests the package. Without this list
+# hatch packs the whole tree (frontend, results, docker, workflows).
 [tool.hatch.build.targets.sdist]
+include = [
+  "/src/agentshield",
+  "/tests",
+  "/examples",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/SECURITY.md",
+  "/pyproject.toml",
+]
 artifacts = [
   "src/agentshield/scenarios/suites/**/*.yaml",
   "src/agentshield/scoring/default_policy.yaml",

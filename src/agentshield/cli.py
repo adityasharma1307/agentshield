@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -11,15 +12,19 @@ from agentshield import __version__
 from agentshield.audit import (
     collect_breaches,
     default_policy_path,
-    load_agent,
+    load_isolated_agent,
     summary_markdown,
     write_step_summary,
 )
+from agentshield.config import deny_same_user_inspection
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import ML_DSA_ALG, QKNOT_ALG, LocalSigner, qknot_verify, verify
+from agentshield.sandbox.agent_process import AgentProcessError
+from agentshield.sandbox.env import describe_boundary, inprocess_boundary
 from agentshield.scenarios.dsl import ScenarioLoadError
 from agentshield.scenarios.loader import load_scenarios, shipped_suites_dir
 from agentshield.scoring.policy import PolicyLoadError, load_policy
+from agentshield.signing_key import SIGNING_SECRET_ENV
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -111,15 +116,45 @@ def main(argv: list[str] | None = None) -> int:
 def _run_suite(agent_entry: str, suite: Path | None, policy_path: Path | None, fail_on: str) -> int:
     suite = shipped_suites_dir() if suite is None else suite
     policy_file = default_policy_path() if policy_path is None else policy_path
+    inspection_denied = _shield_this_process()
     try:
-        agent = load_agent(agent_entry)
         policy = load_policy(policy_file)
-        breaches = asyncio.run(collect_breaches(suite, agent, policy, fail_on=fail_on))
-    except (ScenarioLoadError, PolicyLoadError, ValueError, TypeError, ImportError) as exc:
+        agent = load_isolated_agent(agent_entry)
+    except (
+        ScenarioLoadError,
+        PolicyLoadError,
+        ValueError,
+        TypeError,
+        ImportError,
+        AgentProcessError,
+    ) as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    write_step_summary(summary_markdown(breaches, fail_on=fail_on))
+    try:
+        breaches = asyncio.run(collect_breaches(suite, agent, policy, fail_on=fail_on))
+    except (ScenarioLoadError, ValueError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    finally:
+        agent.close()
+    boundary = inprocess_boundary(
+        agent_process="subprocess",
+        agent_separate_user=agent.separate_user,
+        scorer_inspection_denied=inspection_denied,
+    )
+    write_step_summary(summary_markdown(breaches, fail_on=fail_on, boundary=boundary))
     return 1 if breaches else 0
+
+
+def _shield_this_process() -> bool:
+    """Keep the signing key out of reach of the agent child we are about to start.
+
+    `run` never signs, so the key is dropped from `os.environ`. That does not
+    clear `/proc/<pid>/environ`, which a same-user child could still read, so
+    the process is also made non-dumpable. Returns whether that worked.
+    """
+    os.environ.pop(SIGNING_SECRET_ENV, None)
+    return deny_same_user_inspection()
 
 
 def _list_scenarios(directory: Path | None) -> int:
@@ -159,6 +194,7 @@ def _verify_report(path: Path, key_path: Path | None) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print("signature matches" if matches else "signature does not match")
+    print(describe_boundary(signed.report.boundary))
     return 0 if matches else 1
 
 

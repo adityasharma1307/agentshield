@@ -6,6 +6,26 @@ and version numbers follow the policy in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [Unreleased]
 
+0.1.0 has security holes: the agent under test could wipe its own trace or patch the scorer, the default signing key was public, and the Compose stack was exposed on every interface. Everyone on 0.1.0 should upgrade. The details are under Security below.
+
+### Upgrading from 0.1.0 (breaking)
+
+- The API and the worker no longer start without `AGENTSHIELD_SIGNING_SECRET`. Before you upgrade a running 0.1.0 deployment, generate a key with `openssl rand -hex 32` and set it. Keys under 32 bytes, low-entropy keys and the old default `agentshield-local-dev` are refused. Reports signed with the old default key will no longer verify.
+- `POST /runs` now returns `403` unless the agent matches `AGENTSHIELD_ALLOWED_AGENTS`, which allows none by default.
+- When it runs as root, the agent now runs as `AGENTSHIELD_AGENT_USER` (default `nobody`). Set it to an account that can run your Python interpreter.
+
+### Security
+
+- The agent under test could edit or wipe its own trace. `step()` received the executor's live event list, and an agent that cleared it before answering passed every scenario. The executor now hands `step()` deep copies, deep-copies call arguments before recording them, and checks the mock tools' outbound log against the trace (`TraceIntegrityError`).
+- The agent under test ran in the process that scores and signs. An agent could replace `agentshield.audit.score_trace` at import time and pass every scenario. `agentshield run`, the Action, and the service now run it in a child process (`IsolatedAgent`) without `AGENTSHIELD_*` environment variables.
+- `POST /runs` accepted any `module:attribute` and any path. It now requires the agent to match `AGENTSHIELD_ALLOWED_AGENTS` (none by default) and the suite and policy to resolve under `AGENTSHIELD_ALLOWED_ROOTS` (the installed package by default), and answers `403` otherwise.
+- `docker/compose.yaml` published Postgres and Redis on every interface with a fixed password and the API on `0.0.0.0`. Postgres and Redis now publish no ports, both require a password from the environment with no default, and the API and Jaeger bind `127.0.0.1` only.
+- Reports did not record the boundary the README and threat model said they did. `ReportBody` now has a signed `boundary` field, `agentshield verify` prints it, and the docs say only what the code does.
+- Removed the public default signing key `agentshield-local-dev`. Anyone could use it to forge a signed report. The API and the worker now refuse to start unless `AGENTSHIELD_SIGNING_SECRET` is set. They also refuse an empty key, a key under 32 bytes, and the old default value. `LocalSigner` won't sign or verify with those keys either. `docker compose up` needs the variable set. The worker deletes the key from its environment after reading it and keeps it only in the signer. On Linux it also marks itself non-dumpable, so a same-user agent child can't read the key from `/proc`.
+- The agent child always ran as the operator's user. When `agentshield run` or the worker runs as root, the child now runs as `AGENTSHIELD_AGENT_USER` (default `nobody`). It never falls back to root. `BoundaryReport` gains `agent_separate_user` and `scorer_inspection_denied`, and `verify` prints them.
+- A 32-byte key with a hand-made pattern (repeats, runs such as `abcd…`, or low byte-frequency entropy) was accepted. `check_local_secret` now refuses it. `docs/service.md` shows how to generate a key.
+- `agentshield run` left `AGENTSHIELD_SIGNING_SECRET` readable to the agent child through `/proc/<parent>/environ` when it was set in the shell. `run` now drops the variable from its environment and, on Linux, marks itself non-dumpable before it starts the agent.
+
 ## [0.1.0] - 2026-10-28
 
 First public release. Set this date to the day the `v0.1.0` tag is pushed.

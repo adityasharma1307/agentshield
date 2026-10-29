@@ -6,6 +6,7 @@ import pytest
 
 from agentshield import __version__
 from agentshield.cli import main
+from agentshield.sandbox.env import inprocess_boundary
 
 
 def test_no_args_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
@@ -59,8 +60,9 @@ def test_verify_accepts_a_local_signature(
         created_at="2026-10-02T00:00:00Z",
         scenarios=[],
         trace_refs=[],
+        boundary=inprocess_boundary(),
     )
-    secret = b"test-secret"
+    secret = __import__("secrets").token_hex(32).encode("ascii")
     signed = SignedReport(
         report=body,
         signature=LocalSigner(secret).sign(canonical_bytes(body)),
@@ -87,8 +89,9 @@ def test_verify_rejects_a_tampered_report(
         created_at="2026-10-02T00:00:00Z",
         scenarios=[],
         trace_refs=[],
+        boundary=inprocess_boundary(),
     )
-    secret = b"test-secret"
+    secret = __import__("secrets").token_hex(32).encode("ascii")
     signed = SignedReport(
         report=body,
         signature=LocalSigner(secret).sign(canonical_bytes(body)),
@@ -114,7 +117,9 @@ def test_verify_missing_key_exits_with_usage_error(
     report_path.write_text(
         '{"algorithm":"local","signature":"00","report":{"agent_id":"careful",'
         '"scenario_pack_hash":"abc","policy_version":1,'
-        '"created_at":"2026-10-02T00:00:00Z","scenarios":[],"trace_refs":[]}}',
+        '"created_at":"2026-10-02T00:00:00Z","scenarios":[],"trace_refs":[],'
+        '"boundary":{"boundary":"inprocess","firejail_available":false,'
+        '"gvisor_available":false,"network_denied":false}}}',
         encoding="utf-8",
     )
     assert main(["verify", str(report_path)]) == 2
@@ -135,6 +140,7 @@ def test_verify_accepts_a_qknot_signature_without_a_key(
         created_at="2026-10-02T00:00:00Z",
         scenarios=[],
         trace_refs=[],
+        boundary=inprocess_boundary(),
     )
     signed = SignedReport(
         report=body,
@@ -161,6 +167,7 @@ def test_verify_rejects_a_tampered_qknot_report(
         created_at="2026-10-02T00:00:00Z",
         scenarios=[],
         trace_refs=[],
+        boundary=inprocess_boundary(),
     )
     signed = SignedReport(
         report=body,

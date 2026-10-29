@@ -3,6 +3,7 @@
 from html import escape
 
 from agentshield.report.schema import ReportBody, ScenarioOutcome
+from agentshield.sandbox.env import describe_boundary
 
 
 def render_html(report: ReportBody) -> str:
@@ -29,6 +30,7 @@ pre {{ white-space: pre-wrap; background: #f6f6f6; padding: 0.8rem; }}
 <h1>Agentshield report</h1>
 <p>Agent {escape(report.agent_id)}. Policy version {report.policy_version}.
 Pack {escape(report.scenario_pack_hash)}. Created {escape(report.created_at)}.</p>
+<p>Run {escape(describe_boundary(report.boundary))}.</p>
 <h2>Scenarios</h2>
 <table>
 <thead><tr><th>Suite</th><th>Scenario</th><th>Outcome</th></tr></thead>

@@ -3,8 +3,16 @@
 `step()` never sees the registry. It gets `tools`, `history`, and `context`
 and returns the next action; the executor is what turns a requested call into
 a recorded result.
+
+The executor keeps the event list private. `step()` gets a tuple of deep
+copies, and a requested call's arguments are deep-copied before they are
+recorded, so nothing the agent holds aliases the trace that gets scored.
+Before a run is returned, the outbound record the tool handlers kept in
+`scenario_state["outbound"]` is checked against the trace; a mismatch raises
+`TraceIntegrityError` instead of returning a trace that might be clean.
 """
 
+import copy
 from collections.abc import Callable, Mapping
 from time import monotonic, time_ns
 from typing import Any, Literal
@@ -19,10 +27,14 @@ from agentshield.sandbox.tools import (
     ToolRegistry,
     UnknownToolError,
 )
-from agentshield.trace import AgentTrace, TraceEvent, arguments_sha256
+from agentshield.trace import AgentTrace, ToolCall, TraceEvent, arguments_sha256
 from agentshield.tracing.tracer import NullTracer, Tracer
 
 StoppedReason = Literal["completed", "max_steps", "time_limit", "agent_error"]
+
+
+class TraceIntegrityError(RuntimeError):
+    """The trace does not account for every outbound call a handler recorded."""
 
 
 class RunOutcome(BaseModel):
@@ -65,16 +77,16 @@ async def run_agent(
 
     while True:
         if clock() - start >= settings.time_limit_s:
-            return _stopped(events, "time_limit", tracer)
+            return _stopped(events, "time_limit", tracer, scenario_state)
         if steps_taken >= settings.max_steps:
-            return _stopped(events, "max_steps", tracer)
+            return _stopped(events, "max_steps", tracer, scenario_state)
 
         steps_taken += 1
         started = now_ns()
         try:
-            step = await agent.step(task, tools, events, context)
+            step = await agent.step(task, tools, _snapshot(events), dict(context))
         except Exception:
-            return _stopped(events, "agent_error", tracer)
+            return _stopped(events, "agent_error", tracer, scenario_state)
         duration_ms = (now_ns() - started) / 1_000_000
 
         if step.kind == "final":
@@ -87,12 +99,10 @@ async def run_agent(
                 duration_ms=duration_ms,
                 token_count=step.token_count,
             )
-            return RunOutcome(
-                trace=AgentTrace(events=events, final_text=step.text),
-                stopped_reason="completed",
-            )
+            return _finish(events, step.text, "completed", scenario_state)
 
-        for call in step.calls:
+        for requested in step.calls:
+            call = ToolCall(name=requested.name, arguments=copy.deepcopy(requested.arguments))
             _append(
                 events,
                 tracer,
@@ -165,6 +175,49 @@ def _emit(tracer: Tracer, event: TraceEvent) -> None:
     span.end()
 
 
-def _stopped(events: list[TraceEvent], reason: StoppedReason, tracer: Tracer) -> RunOutcome:
+def _snapshot(events: list[TraceEvent]) -> tuple[TraceEvent, ...]:
+    """What `step()` sees: copies, so mutating them cannot reach the recorded trace."""
+    return tuple(event.model_copy(deep=True) for event in events)
+
+
+def _stopped(
+    events: list[TraceEvent],
+    reason: StoppedReason,
+    tracer: Tracer,
+    scenario_state: ScenarioState,
+) -> RunOutcome:
     _append(events, tracer, kind="final", text="")
-    return RunOutcome(trace=AgentTrace(events=events, final_text=""), stopped_reason=reason)
+    return _finish(events, "", reason, scenario_state)
+
+
+def _finish(
+    events: list[TraceEvent],
+    final_text: str,
+    reason: StoppedReason,
+    scenario_state: ScenarioState,
+) -> RunOutcome:
+    trace = AgentTrace(
+        events=[event.model_copy(deep=True) for event in events], final_text=final_text
+    )
+    check_outbound(trace, scenario_state)
+    return RunOutcome(trace=trace, stopped_reason=reason)
+
+
+def check_outbound(trace: AgentTrace, scenario_state: ScenarioState) -> None:
+    """Raise `TraceIntegrityError` unless every outbound record is a traced call.
+
+    Handlers append `{"tool", "arguments"}` to `scenario_state["outbound"]` for
+    each outbound call they run. Each record must match, in order, a
+    `tool_call` event with the same name and arguments.
+    """
+    records = scenario_state.get("outbound", [])
+    if not isinstance(records, list):
+        raise TraceIntegrityError("scenario_state['outbound'] is not a list")
+    calls = iter(event for event in trace.events if event.kind == "tool_call")
+    for index, record in enumerate(records):
+        tool = record.get("tool") if isinstance(record, dict) else None
+        arguments = record.get("arguments") if isinstance(record, dict) else None
+        if not any(event.name == tool and event.arguments == arguments for event in calls):
+            raise TraceIntegrityError(
+                f"outbound record {index} ({tool}) has no matching tool_call in the trace"
+            )

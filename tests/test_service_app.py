@@ -1,17 +1,21 @@
 """Health, enqueue, and the worker lifecycle. The request does not run the suite."""
 
 import asyncio
+import secrets
 import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from agentshield import __version__
 from agentshield.config import Settings
 from agentshield.report.schema import SignedReport, canonical_bytes
 from agentshield.report.signing import LocalSigner
 from agentshield.service import worker as worker_mod
+from agentshield.service.allowlist import RunAllowlist
 from agentshield.service.app import create_app
 from agentshield.service.db import make_engine, make_session_factory, upgrade_database
 from agentshield.service.queue import MemoryQueue
@@ -129,6 +133,26 @@ def test_diff_names_the_scenario_that_changed(tmp_path: Path) -> None:
         assert leaky_report.report.scenarios[0].failing_rules[0].id == "no-outbound-mail"
 
 
+@pytest.mark.parametrize(
+    "agent",
+    [
+        "examples.leaky_agent.agent:agent",
+        "examples.tamper_agents.trace_eraser:agent",
+        "examples.tamper_agents.score_patcher:agent",
+    ],
+)
+def test_a_tampering_agent_cannot_get_a_passing_report(tmp_path: Path, agent: str) -> None:
+    client, _queue, ctx, _secret = _client(tmp_path)
+    suite, policy = _files(tmp_path)
+    with client:
+        run_id = _post(client, suite, policy, agent).json()["id"]
+        asyncio.run(execute_run(ctx, run_id))
+        assert client.get(f"/runs/{run_id}").json()["status"] == "succeeded"
+        report = SignedReport.model_validate(client.get(f"/runs/{run_id}/report").json())
+        assert [s.passed for s in report.report.scenarios] == [False]
+        assert report.report.scenarios[0].failing_rules[0].id == "no-outbound-mail"
+
+
 def test_diff_rejects_a_different_suite_hash(tmp_path: Path) -> None:
     client, _queue, _ctx, _secret = _client(tmp_path)
     left_suite, policy = _files(tmp_path)
@@ -149,11 +173,11 @@ def test_failed_run_stores_the_error_without_environment_values(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
     secret = "super-secret-token"
-    monkeypatch.setenv("AGENTSHIELD_TEST_LEAK", secret)
+    monkeypatch.setenv("TEST_LEAK_TOKEN", secret)
     module_dir = tmp_path / "mods"
     module_dir.mkdir()
     (module_dir / "crashmod.py").write_text(
-        "import os\nraise RuntimeError(os.environ['AGENTSHIELD_TEST_LEAK'])\n",
+        "import os\nraise RuntimeError(os.environ['TEST_LEAK_TOKEN'])\n",
         encoding="utf-8",
     )
     sys.path.insert(0, str(module_dir))
@@ -202,10 +226,12 @@ def _client(tmp_path: Path) -> tuple[TestClient, MemoryQueue, dict[str, Any], st
     upgrade_database(url)
     factory = make_session_factory(make_engine(url))
     queue = MemoryQueue()
-    settings = Settings(database_url=url, signing_secret="test-secret-value")
-    app = create_app(settings, queue=queue, session_factory=factory)
+    secret = secrets.token_hex(32)
+    settings = Settings(database_url=url, signing_secret=SecretStr(secret))
+    allowlist = RunAllowlist(agents=("examples.*", "crashmod:agent"), roots=(tmp_path.resolve(),))
+    app = create_app(settings, queue=queue, session_factory=factory, allowlist=allowlist)
     ctx: dict[str, Any] = {"settings": settings, "session_factory": factory}
-    return TestClient(app), queue, ctx, settings.signing_secret
+    return TestClient(app), queue, ctx, secret
 
 
 def _files(tmp_path: Path) -> tuple[Path, Path]:

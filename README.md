@@ -42,7 +42,7 @@ Run it with `python -m` from the checkout so the `examples` package is importabl
 - **Sandbox.** Every tool call goes through a mock `ToolRegistry` (`search`, `read_file`, `send_email`, `http_get`, `db_query`), each with a deterministic trap variant. Step and time limits apply.
 - **Scenarios.** 22 adversarial scenarios cover injection, exfiltration, scope creep, policy violation, and tool jailbreak. `agentshield scenarios` lists them.
 - **Scoring.** A declarative YAML policy is applied to the ordered trace. The default policy is tagged for the EU AI Act, the NIST AI RMF, India's DPDP Act, and UAE and DIFC data law.
-- **Reports and gating.** Reports are signed and checked with `agentshield verify`. The Docker GitHub Action fails a pull request at or above a chosen severity. An optional FastAPI service and React dashboard are included.
+- **Reports and gating.** Reports are signed and checked with `agentshield verify`. The Docker GitHub Action fails a pull request at or above a chosen severity. An optional FastAPI service and React dashboard are included. The service has no default signing key: set `AGENTSHIELD_SIGNING_SECRET` (`openssl rand -hex 32`) or it will not start.
 
 CI replays recorded fixtures and never calls a model provider. Local example-agent results are in [RESULTS.md](RESULTS.md).
 
@@ -50,8 +50,8 @@ CI replays recorded fixtures and never calls a model provider. Local example-age
 
 The agent under test, and everything a scenario feeds it, are treated as hostile. Agentshield measures whether the agent stays inside the policy, and it keeps scenario side effects off the host:
 
-- **Holds today:** tools are mocks only, tool output is deterministic, step and wall-clock limits apply, and the trace is complete, including rejected calls. Spans carry argument hashes, not raw arguments.
-- **Network containment** needs `subprocess` mode with `firejail` installed. In the default `inprocess` mode, a handler that opens its own socket is not stopped. Each run reports which boundary it actually had.
+- **Holds today:** tools are mocks only, tool output is deterministic, step and wall-clock limits apply, and the trace is complete, including rejected calls. The executor keeps the trace private: the agent gets copies of its history, so it cannot edit or wipe what gets scored. `agentshield run`, the Action, and the service run the agent in a child process without any `AGENTSHIELD_*` variables, so it cannot patch the scorer or read the signing secret from the environment. Spans carry argument hashes, not raw arguments.
+- **Not contained:** the agent's child process is an ordinary process that can open network connections. It runs as your user, so it can read your files, unless `agentshield` itself runs as root. Then the child is started as `AGENTSHIELD_AGENT_USER` (default `nobody`), and the report says `agent uid separate`. `run` and the worker also mark themselves non-dumpable on Linux, so the child can't read the signing key from their `/proc` entries. Tool handlers run in the scoring process (`inprocess`); `run`, the Action, and the service do not use the firejail `subprocess` mode, so their reports always say `network_denied: false`. Every signed report records this in its `boundary` field, and `agentshield verify` prints it.
 - **Out of scope:** the model provider (prompts leave the machine), adapter code the operator chose to install, and binding a qknot signature to a person.
 
 Read the full [threat model](docs/threat-model.md) before pointing a live agent at this tree. To report a vulnerability, see [SECURITY.md](SECURITY.md).

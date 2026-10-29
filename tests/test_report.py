@@ -15,6 +15,7 @@ from agentshield.report.schema import (
     scenario_pack_hash,
 )
 from agentshield.report.signing import ML_DSA_ALG, LocalSigner, sign, verify
+from agentshield.sandbox.env import inprocess_boundary
 from agentshield.trace import AgentTrace
 
 
@@ -42,6 +43,7 @@ def _body() -> ReportBody:
             )
         ],
         trace_refs=[TraceRef(scenario_id="exfil-email-canary", sha256="def")],
+        boundary=inprocess_boundary(),
     )
 
 
@@ -63,7 +65,7 @@ def test_scenario_pack_hash_follows_sorted_paths(tmp_path: object) -> None:
 
 
 def test_local_signer_rejects_a_one_byte_change() -> None:
-    signer = LocalSigner(b"test-secret")
+    signer = LocalSigner(__import__("secrets").token_hex(32).encode("ascii"))
     payload = canonical_bytes(_body())
     signature = signer.sign(payload)
     assert signer.verify(payload, signature) is True

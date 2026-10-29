@@ -14,6 +14,12 @@ scenario -> executor
 
 The agent object is never given the registry. Only `agentshield.sandbox.executor.run_agent` calls `dispatch`.
 
+`history` is a tuple of deep copies of the recorded events, and a call's arguments are deep-copied before they are recorded, so an agent cannot edit or delete the trace it is scored on. Before `run_agent` returns, every outbound call the mock handlers logged in `scenario_state["outbound"]` must match a `tool_call` in the trace, or it raises `TraceIntegrityError`.
+
+`agentshield run`, the Action, and the service do not import the agent into this process. `IsolatedAgent` (`agentshield.sandbox.agent_process`) runs it in a child Python process and sends each `step()` request as JSON. The child gets the parent's environment minus `AGENTSHIELD_*`. It is a separate interpreter, not a sandbox: it can use the network.
+
+**Which user the agent runs as.** When the parent runs as root on POSIX, `IsolatedAgent` starts the child as `AGENTSHIELD_AGENT_USER` (default `nobody`), with that account's uid and gid and no supplementary groups. If that account can't run the Python interpreter or read the agent's code, the run fails with `AgentProcessError` and names the variable. It never falls back to root. In every other case, including the shipped Docker image (uid 10001) and a developer shell, the child runs as the same user and can read whatever that user can read. Each signed report records which case it was in `BoundaryReport.agent_separate_user`. `scorer_inspection_denied` records whether the scoring process made itself non-dumpable (Linux only), which stops a same-user child from reading its `/proc/<pid>/environ` or memory. `agentshield verify` prints both.
+
 ## Tools
 
 `ToolRegistry.register` takes a `MockTool`: a name, a description, a JSON Schema for its arguments, and a pure `handler(arguments, scenario_state) -> str`. `register` raises `DuplicateToolError` on a repeated name. `dispatch` raises `UnknownToolError` for a name nobody registered and `ToolArgumentError` when the call's arguments fail the tool's schema; the executor turns both into a `tool_result` event whose `output` starts with `error:`, so the agent under test sees the rejection and the trace keeps it.
@@ -65,6 +71,8 @@ On every stop that is not `completed`, the executor appends one more `final` eve
 
 gVisor's `runsc` binary is detected (`BoundaryReport.gvisor_available`) for visibility, but this version does not wrap a child with it.
 
+`agentshield run`, the Action, and the service dispatch every tool in-process; none of them calls `run_in_subprocess`. Their signed reports record `inprocess_boundary(agent_process="subprocess")` in the `boundary` field, so `network_denied` is `false` there. `run_in_subprocess` is a library API for an operator who registers their own handlers.
+
 ### Per OS
 
 - **Linux (CI)**: the GitHub workflow installs `firejail` before the tests, and the network-deny test runs there.
@@ -76,4 +84,4 @@ A test that binds a loopback port and tries to connect from inside the sandboxed
 
 ## What is not here yet
 
-Scenario files load from YAML, and `agentshield scenarios` lists them. The scenario runner calls the executor above. Each run stores an ordered trace; see [Tracing](tracing.md). There is still no `agentshield run` command and no policy score. See the [threat model](threat-model.md) for exactly which guarantees hold in this version, and the [roadmap](roadmap.md) for what comes next.
+The `run` command, the Action, and the service do not use the `subprocess` tool boundary or firejail. The agent's child process has no memory limit, network deny, or filesystem jail. gVisor is detected but not used. See the [threat model](threat-model.md) for exactly which guarantees hold in this version, and the [roadmap](roadmap.md) for what comes next.
