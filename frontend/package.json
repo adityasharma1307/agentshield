@@ -12,7 +12,7 @@
     "openapi-fetch": "^0.17.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router-dom": "^7.6.3"
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
